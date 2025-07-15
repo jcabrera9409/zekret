@@ -1,0 +1,27 @@
+<div class="bg-white rounded-lg p-6 w-full">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Crear Namespace</h3>
+    <form id="namespace-form">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Nombre</label>
+                <input type="text" id="namespace-name" required
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Descripción</label>
+                <textarea id="namespace-description" rows="3"
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+            </div>
+        </div>
+        <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" id="cancel-namespace-btn"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                Cancelar
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700">
+                Crear
+            </button>
+        </div>
+    </form>
+</div>

@@ -1,15 +1,20 @@
 import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { CredentialEditionDialogComponent } from '../../../modals/credential-edition-dialog/credential-edition-dialog.component';
+import { CredentialDetailDialogComponent } from '../../../modals/credential-detail-dialog/credential-detail-dialog.component';
 
 @Component({
   selector: 'app-credentials',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatDialogModule],
   templateUrl: './credentials.component.html',
   styleUrl: './credentials.component.css'
 })
 export class CredentialsComponent implements OnChanges {
   @Input() selectedNamespace: string | null = null;
+
+  constructor(public dialog: MatDialog) {}
 
   // Datos de ejemplo de credenciales por namespace
   credentialsByNamespace: { [key: string]: any[] } = {
@@ -34,6 +39,20 @@ export class CredentialsComponent implements OnChanges {
     if (this.selectedNamespace) {
       this.loadCredentialsForNamespace(this.selectedNamespace);
     }
+  }
+
+  openCreateCredentialDialog() {
+    this.dialog.open(CredentialEditionDialogComponent, {
+      width: '500px',
+      data: { namespace: this.selectedNamespace }
+    });
+  }
+
+  onCredentialClick(credential: any) {
+    this.dialog.open(CredentialDetailDialogComponent, {
+      width: '500px',
+      data: { credential, namespace: this.selectedNamespace }
+    });
   }
 
   private loadCredentialsForNamespace(namespace: string) {

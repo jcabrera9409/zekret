@@ -5,7 +5,6 @@ import { StatsNamespaceComponent } from "../stats-namespace/stats-namespace.comp
 import { IndexNamespaceComponent } from "./index-namespace/index-namespace.component";
 import { CredentialsComponent } from "./credentials/credentials.component";
 
-
 @Component({
   selector: 'app-namespace',
   standalone: true,
