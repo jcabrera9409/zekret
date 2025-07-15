@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { typeCredential } from '../../_model/type-credential';
+import { credentialType } from '../../_model/credential-type';
 
 @Component({
   selector: 'app-credential-edition-dialog',
@@ -12,14 +12,14 @@ import { typeCredential } from '../../_model/type-credential';
 })
 export class CredentialEditionDialogComponent {
 
-  typeCredential = typeCredential;
+  credentialType = credentialType;
 
   credentialForm: FormGroup;
 
   constructor() {
     this.credentialForm = new FormGroup({
       title: new FormControl('', [Validators.required]),
-      type: new FormControl(typeCredential[0].key, [Validators.required]),
+      type: new FormControl(credentialType[0].key, [Validators.required]),
       credentialValue: new FormControl('', [Validators.required]),
       
       up_username: new FormControl('', [Validators.required]),
