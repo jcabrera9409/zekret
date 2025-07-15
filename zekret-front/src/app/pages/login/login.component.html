@@ -14,10 +14,10 @@
                 </svg>
             </div>
             <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                <span>{{isLoginMode ? "Iniciar Sesión" : "Crear Cuenta"}}</span>
+                <span>Zekret</span>
             </h2>
             <p class="mt-2 text-center text-sm text-gray-600">
-                Gestor de Credenciales para Desarrolladores
+                {{isLoginMode ? "Iniciar Sesión" : "Crear Cuenta"}}
             </p>
         </div>
 
@@ -28,9 +28,9 @@
 
             <div class="space-y-4">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Usuario/Email*</label>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Usuario/Email</label>
                     <input id="email" name="email" type="email" formControlName="email" required
-                        class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                        class="form-input mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                         placeholder="Usuario/Email">
                 </div>
 
