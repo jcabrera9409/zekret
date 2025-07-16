@@ -57,13 +57,11 @@ src/main/java/com/zekret/
     ├── ICRUD.java                      # Interface CRUD genérica
     ├── IUserService.java
     ├── ICredentialService.java
-    ├── ICredentialTypeService.java
     ├── INamespaceService.java
     └── impl/                           # Implementaciones de servicios
         ├── CRUDImpl.java
         ├── UserServiceImpl.java
         ├── CredentialServiceImpl.java
-        ├── CredentialTypeServiceImpl.java
         ├── NamespaceServiceImpl.java
         ├── AuthenticationService.java
         ├── JwtService.java
@@ -240,14 +238,10 @@ public Namespace save(Namespace namespace) {
     return super.save(namespace);
 }
 
-// En CredentialTypeServiceImpl
-@Override  
-public CredentialType save(CredentialType credentialType) {
-    if (credentialType.getZrn() == null || credentialType.getZrn().isEmpty()) {
-        credentialType.setZrn(ZrnGenerator.generateCredentialTypeZrn(credentialType.getName()));
-    }
-    return super.save(credentialType);
-}
+// Para CredentialType - manejo directo en controlador o inicialización
+// Los tipos de credenciales pueden ser pre-poblados en la base de datos
+// o creados programáticamente con:
+String credentialTypeZrn = ZrnGenerator.generateCredentialTypeZrn("SSH Credential");
 ```
 
 ## Configuración de Seguridad
@@ -1369,63 +1363,169 @@ public class Credential {
 - ✅ **Credential Type Mutable:** El tipo de credencial puede actualizarse en updates
 - ✅ **Filtrado Automático:** Todas las consultas filtran por usuario automáticamente
 
-## 🆕 Actualizaciones Recientes (Julio 2025)
+## 🔧 Controladores Refactorizados (Julio 2025)
 
-### Timestamps Automáticos con Hibernate
+### UserController (Optimizado)
 
-Se ha implementado gestión automática de timestamps usando anotaciones de Hibernate para las entidades `Credential` y `Namespace`:
+**Ruta base:** `/v1/users`
+**Autenticación:** NO requerida para registro
 
-**Anotaciones utilizadas:**
-- `@CreationTimestamp`: Se ejecuta automáticamente al persistir una nueva entidad
-- `@UpdateTimestamp`: Se ejecuta automáticamente en cada actualización de la entidad
+**Características Clave:**
+- ✅ **Manejo de Errores Robusto:** Try-catch estructurado con códigos HTTP específicos
+- ✅ **Validación de Usuario Existente:** Retorna `CONFLICT (409)` si usuario ya existe
+- ✅ **Logging Detallado:** Logs de inicio, éxito, advertencia y error
+- ✅ **Timestamps Automáticos:** User model maneja `createdAt` y `updatedAt` automáticamente
+- ✅ **Encriptación BCrypt:** Password encriptado antes de guardar
+- ✅ **Documentación JavaDoc:** Métodos completamente documentados
 
-**Configuración en las entidades:**
-```java
-// En Credential.java y Namespace.java
-@CreationTimestamp
-@Column(nullable = false, updatable = false)
-private LocalDateTime createdAt;
+**Endpoints:**
 
-@UpdateTimestamp  
-@Column(nullable = false)
-private LocalDateTime updatedAt;
+#### 1. Registrar Usuario
+- **Endpoint:** `POST /v1/users/register`
+- **Descripción:** Registra un nuevo usuario en el sistema
+- **Body Request:**
+```json
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
 ```
-
-**Ventajas de los Timestamps Automáticos:**
-- **Consistencia:** Garantiza que todas las entidades tengan timestamps precisos
-- **Automatización:** No requiere código manual en servicios para establecer fechas
-- **Performance:** Operaciones a nivel de base de datos sin lógica adicional en Java
-- **Inmutabilidad:** `createdAt` no puede ser modificado después de la creación
-- **Auditoría:** Rastrea automáticamente cuándo se creó y modificó cada entidad
-
-### Optimización de Consultas de Usuario Redundantes
-
-Se eliminaron consultas duplicadas de usuario en los servicios `CredentialServiceImpl` y `NamespaceServiceImpl`:
-
-**Problema identificado:**
-```java
-// ANTES: Consulta redundante en cada servicio
-User user = userRepo.findById(authenticatedUser.getId()).orElse(null);
+- **Response Exitosa (201):**
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "username": "johndoe",
+    "email": "john@example.com",
+    "createdAt": "2025-07-15T19:30:45.123456",
+    "updatedAt": "2025-07-15T19:30:45.123456"
+  },
+  "statusCode": 201,
+  "timestamp": "2025-07-15T19:30:45"
+}
 ```
-
-**Solución implementada:**
-```java
-// DESPUÉS: Reutilizar usuario ya autenticado del controller
-@Override
-public Credential register(Credential entity) {
-    logger.info("Registering credential - user relationship maintained from controller");
-    // El usuario ya viene autenticado y validado desde el controller
-    return super.register(entity);
+- **Response Usuario Existente (409):**
+```json
+{
+  "success": false,
+  "message": "User with this email or username already exists",
+  "data": null,
+  "statusCode": 409,
+  "timestamp": "2025-07-15T19:30:45"
 }
 ```
 
-**Impact de Performance:**
-- **Reducción del 50%** en consultas de usuario por request
-- **Eliminación de dependencias:** Removido `IUserRepo` de servicios de negocio
-- **Simplificación de código:** Lógica más limpia y mantenible
-- **Consistencia:** Un solo punto de autenticación (AuthenticationUtils)
+### AuthenticationController (Optimizado)
 
-**Archivos optimizados:**
-- `CredentialServiceImpl.java`: Métodos `register()` y `modify()`
-- `NamespaceServiceImpl.java`: Métodos `register()` y `modify()`
-- Eliminadas dependencias e imports no utilizados
+**Ruta base:** `/v1/auth`
+**Autenticación:** NO requerida para login
+
+**Características Clave:**
+- ✅ **Autenticación Flexible:** Acepta username O email en el campo `username`
+- ✅ **Gestión de Tokens JWT:** Genera access y refresh tokens
+- ✅ **Revocación Automática:** Revoca tokens anteriores al hacer login
+- ✅ **Manejo de Errores Detallado:** Diferentes respuestas según el tipo de error
+- ✅ **Logging de Seguridad:** Rastrea intentos de login y resultados
+- ✅ **Validación de Cuenta:** Verifica que la cuenta esté habilitada
+
+**Endpoints:**
+
+#### 1. Autenticar Usuario
+- **Endpoint:** `POST /v1/auth/login`
+- **Descripción:** Autentica usuario y genera tokens JWT
+- **Body Request (con username):**
+```json
+{
+  "username": "johndoe",
+  "password": "securePassword123"
+}
+```
+- **Body Request (con email):**
+```json
+{
+  "username": "john@example.com",
+  "password": "securePassword123"
+}
+```
+- **Response Exitosa (200):**
+```json
+{
+  "success": true,
+  "message": "User authenticated successfully",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "message": "User authenticated successfully"
+  },
+  "statusCode": 200,
+  "timestamp": "2025-07-15T19:30:45"
+}
+```
+- **Response Credenciales Inválidas (401):**
+```json
+{
+  "success": false,
+  "message": "Authentication failed. Please check your credentials.",
+  "data": null,
+  "statusCode": 401,
+  "timestamp": "2025-07-15T19:30:45"
+}
+```
+- **Response Cuenta Deshabilitada (401):**
+```json
+{
+  "success": false,
+  "message": "Your account is not enabled. Please contact support.",
+  "data": null,
+  "statusCode": 401,
+  "timestamp": "2025-07-15T19:30:45"
+}
+```
+
+### Repositorios Optimizados
+
+#### IUserRepo
+Consultas específicas para gestión de usuarios y autenticación:
+
+```java
+public interface IUserRepo extends IGenericRepo<User, Long> {
+    
+    // Buscar usuario por email O username (flexible para login)
+    Optional<User> findByEmailOrUsername(String email, String username);
+    
+    // Actualizar password de usuario por ID (para cambio de contraseña)
+    @Transactional
+    @Modifying
+    @Query("UPDATE User u SET u.password = :password WHERE u.id = :id")
+    int updatePasswordById(@Param("id") Long id, @Param("password") String password);
+}
+```
+
+#### ITokenRepo
+Gestión avanzada de tokens JWT con estado de sesión:
+
+```java
+public interface ITokenRepo extends IGenericRepo<Token, Long> {
+    
+    // Paginación de tokens para administración
+    Page<Token> findAll(Pageable pageable);
+    
+    // Buscar token por access token para validación
+    Optional<Token> findByAccessToken(String accessToken);
+    
+    // Buscar token por refresh token para renovación
+    Optional<Token> findByRefreshToken(String refreshToken);
+    
+    // Obtener tokens activos de un usuario (para revocación)
+    List<Token> findByUserIdAndLoggedOutFalse(Long userId);
+}
+```
+
+**Funcionalidades de Token:**
+- ✅ **Revocación Automática:** Al hacer login se revocan tokens anteriores
+- ✅ **Validación por Access Token:** Para autenticación en cada request
+- ✅ **Renovación por Refresh Token:** Para extender sesión sin re-login
+- ✅ **Estado de Sesión:** Campo `loggedOut` para invalidar tokens
+- ✅ **Filtrado por Usuario:** Tokens específicos por usuario ID

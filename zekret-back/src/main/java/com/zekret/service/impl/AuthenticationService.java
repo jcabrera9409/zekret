@@ -2,6 +2,8 @@ package com.zekret.service.impl;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -16,59 +18,90 @@ import com.zekret.repo.IUserRepo;
 
 @Service
 public class AuthenticationService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
+    
     @Autowired
-	private IUserRepo repository;
+    private IUserRepo repository;
     
-	@Autowired
-	private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
     
-	@Autowired
-	private JwtService jwtService;
+    @Autowired
+    private JwtService jwtService;
 
-	@Autowired
+    @Autowired
     private ITokenRepo tokenRepository;
 
-	@Autowired
+    @Autowired
     private AuthenticationManager authenticationManager;
 
+    /**
+     * Authenticate user and generate JWT tokens
+     */
     public AuthenticationResponseDTO authenticate(User request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()
-                )
-        );
-
-        // Buscar usuario usando el mismo username que se usó para autenticar
-        User usuario = repository.findByEmailOrUsername(request.getUsername(), request.getUsername()).orElseThrow();
+        logger.info("Authenticating user: {}", request.getUsername());
         
-        if(usuario.isEnabled()) {
-        	String accessToken = jwtService.generateAccessToken(usuario);
-            String refreshToken = jwtService.generateRefreshToken(usuario);
+        try {
+            // Authenticate user credentials
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
 
-            revokeAllTokenByVendedor(usuario);
-            saveUserToken(accessToken, refreshToken, usuario);
+            // Find user by email or username
+            User usuario = repository.findByEmailOrUsername(request.getUsername(), request.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            if (usuario.isEnabled()) {
+                logger.info("User authenticated successfully: {}", usuario.getUsername());
+                
+                // Generate tokens
+                String accessToken = jwtService.generateAccessToken(usuario);
+                String refreshToken = jwtService.generateRefreshToken(usuario);
 
-            return new AuthenticationResponseDTO(accessToken, refreshToken, "User authenticated successfully.");
-        } else {
-        	return new AuthenticationResponseDTO(null, null, "Your account is not enabled. Please contact support.");
+                // Revoke existing tokens and save new ones
+                revokeAllTokenByUser(usuario);
+                saveUserToken(accessToken, refreshToken, usuario);
+
+                return new AuthenticationResponseDTO(accessToken, refreshToken, "User authenticated successfully");
+            } else {
+                logger.warn("Account is disabled for user: {}", usuario.getUsername());
+                return new AuthenticationResponseDTO(null, null, "Your account is not enabled. Please contact support.");
+            }
+            
+        } catch (Exception e) {
+            logger.error("Authentication failed for user: {} - {}", request.getUsername(), e.getMessage());
+            return new AuthenticationResponseDTO(null, null, "Invalid credentials");
         }
     }
 
-    public void revokeAllTokenByVendedor(User usuario) {
+    /**
+     * Revoke all active tokens for a user
+     */
+    public void revokeAllTokenByUser(User usuario) {
+        logger.info("Revoking all tokens for user: {}", usuario.getUsername());
+        
         List<Token> validTokens = tokenRepository.findByUserIdAndLoggedOutFalse(usuario.getId());
-        if(validTokens.isEmpty()) {
+        if (validTokens.isEmpty()) {
+            logger.debug("No active tokens found for user: {}", usuario.getUsername());
             return;
         }
 
-        validTokens.forEach(t-> {
-            t.setLoggedOut(true);
-        });
-
+        validTokens.forEach(token -> token.setLoggedOut(true));
         tokenRepository.saveAll(validTokens);
+        
+        logger.info("Revoked {} tokens for user: {}", validTokens.size(), usuario.getUsername());
     }
 
+    /**
+     * Save new token for user
+     */
     private void saveUserToken(String accessToken, String refreshToken, User usuario) {
+        logger.info("Saving new tokens for user: {}", usuario.getUsername());
+        
         Token token = new Token();
         token.setAccessToken(accessToken);
         token.setRefreshToken(refreshToken);
@@ -77,8 +110,15 @@ public class AuthenticationService {
         tokenRepository.save(token);
     }
 
-    public int modificarPasswordPorId(Long id, String password) {
-		int filasActualizadas = repository.updatePasswordById(id, passwordEncoder.encode(password));
-		return filasActualizadas;
-	}
+    /**
+     * Update user password by ID
+     */
+    public int updatePasswordById(Long id, String password) {
+        logger.info("Updating password for user ID: {}", id);
+        
+        int rowsUpdated = repository.updatePasswordById(id, passwordEncoder.encode(password));
+        
+        logger.info("Password updated for user ID: {} - {} rows affected", id, rowsUpdated);
+        return rowsUpdated;
+    }
 }

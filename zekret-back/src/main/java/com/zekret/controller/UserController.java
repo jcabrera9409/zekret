@@ -17,21 +17,46 @@ import com.zekret.service.IUserService;
 @RestController
 @RequestMapping("/v1/users")
 public class UserController {
+    
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     
     @Autowired
     private IUserService userService;
     
+    /**
+     * Register a new user
+     */
     @PostMapping("/register")
     public ResponseEntity<APIResponseDTO<User>> registerUser(@RequestBody User request) {
-    	logger.info("Registering user: {}", request.getUsername());    	
-    	User newUser = userService.register(request);
-    	APIResponseDTO<User> response = (newUser != null) 
-			? APIResponseDTO.success("User registered successfully", newUser, HttpStatus.CREATED.value())
-			: APIResponseDTO.error("User registration failed", HttpStatus.BAD_REQUEST.value());
-    	logger.info("User registration message: {}", response.getMessage());
-		
-		return ResponseEntity.status(response.getStatusCode())
-				.body(response);
-	}
+        try {
+            logger.info("Registering user: {}", request.getUsername());
+            
+            User newUser = userService.register(request);
+            
+            if (newUser != null) {
+                logger.info("User registered successfully: {}", newUser.getUsername());
+                APIResponseDTO<User> response = APIResponseDTO.success(
+                    "User registered successfully", 
+                    newUser, 
+                    HttpStatus.CREATED.value()
+                );
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            } else {
+                logger.warn("User registration failed - user already exists: {}", request.getUsername());
+                APIResponseDTO<User> response = APIResponseDTO.error(
+                    "User with this email or username already exists", 
+                    HttpStatus.CONFLICT.value()
+                );
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error during user registration for user: {} - {}", request.getUsername(), e.getMessage());
+            APIResponseDTO<User> response = APIResponseDTO.error(
+                "User registration failed. Please try again.", 
+                HttpStatus.BAD_REQUEST.value()
+            );
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
 }

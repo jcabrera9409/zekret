@@ -24,11 +24,14 @@ public class AuthenticationController {
     @Autowired
     private AuthenticationService authenticationService;
     
+    /**
+     * Authenticate user and generate JWT tokens
+     */
     @PostMapping("/login")
     public ResponseEntity<APIResponseDTO<AuthenticationResponseDTO>> login(@RequestBody User request) {
-        logger.info("Login attempt for user: {}", request.getUsername());
-        
         try {
+            logger.info("Login attempt for user: {}", request.getUsername());
+            
             AuthenticationResponseDTO authResponse = authenticationService.authenticate(request);
             
             if (authResponse.getAccessToken() != null) {

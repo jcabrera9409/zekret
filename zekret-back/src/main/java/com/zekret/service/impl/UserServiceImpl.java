@@ -16,32 +16,37 @@ public class UserServiceImpl extends CRUDImpl<User, Long> implements IUserServic
 
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
-    @Autowired
-	private final IUserRepo userRepository;
+    private final IUserRepo userRepository;
 
     @Autowired
-	private PasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;
     
-	public UserServiceImpl(IUserRepo userRepository) {
-		this.userRepository = userRepository;
-	}
+    public UserServiceImpl(IUserRepo userRepository) {
+        this.userRepository = userRepository;
+    }
 
-	@Override
-	protected IGenericRepo<User, Long> getRepo() {
-		logger.info("Returning user repository");
-		return userRepository;
-	}
-	
-	@Override
-	public User register(User user) {
-		logger.info("Registering user: {}", user.getUsername());
-		User existingUser = userRepository.findByEmailOrUsername(user.getEmail(), user.getUsername()).orElse(null);
-		if (existingUser != null) {
-			logger.warn("User with email {} or username {} already exists.", user.getEmail(), user.getUsername());
-			return null; 
-		}
-		user.setCreatedAt(java.time.LocalDateTime.now());
-		user.setPassword(passwordEncoder.encode(user.getPassword()));
-		return userRepository.save(user);
-	}
+    @Override
+    protected IGenericRepo<User, Long> getRepo() {
+        return userRepository;
+    }
+    
+    @Override
+    public User register(User user) {
+        logger.info("Registering user: {}", user.getUsername());
+        
+        // Check if user already exists
+        User existingUser = userRepository.findByEmailOrUsername(user.getEmail(), user.getUsername()).orElse(null);
+        if (existingUser != null) {
+            logger.warn("User with email {} or username {} already exists", user.getEmail(), user.getUsername());
+            return null; 
+        }
+        
+        // Encode password and save user
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        
+        // Timestamps are automatically handled by @CreationTimestamp and @UpdateTimestamp
+        logger.info("Saving user - timestamps will be set automatically");
+        
+        return userRepository.save(user);
+    }
 }
