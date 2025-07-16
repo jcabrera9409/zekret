@@ -5,13 +5,10 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.zekret.model.Namespace;
-import com.zekret.model.User;
 import com.zekret.repo.INamespaceRepo;
-import com.zekret.repo.IUserRepo;
 import com.zekret.repo.IGenericRepo;
 import com.zekret.service.INamespaceService;
 
@@ -21,9 +18,6 @@ public class NamespaceServiceImpl extends CRUDImpl<Namespace, Long> implements I
     private static final Logger logger = LoggerFactory.getLogger(NamespaceServiceImpl.class);
 
     private final INamespaceRepo namespaceRepo;
-    
-    @Autowired
-    private IUserRepo userRepo;
 
     public NamespaceServiceImpl(INamespaceRepo namespaceRepo) {
         this.namespaceRepo = namespaceRepo;
@@ -33,37 +27,15 @@ public class NamespaceServiceImpl extends CRUDImpl<Namespace, Long> implements I
     public Namespace register(Namespace entity) {
         logger.info("Registering namespace with explicit user relationship handling");
         
-        // Ensure the user relationship is properly set by ID
-        if (entity.getUser() != null && entity.getUser().getId() != null) {
-            Optional<User> user = userRepo.findById(entity.getUser().getId());
-            if (user.isPresent()) {
-                entity.setUser(user.get());
-                logger.info("User relationship established for namespace");
-            } else {
-                logger.error("User not found with ID: {}", entity.getUser().getId());
-                throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
-            }
-        }
+        // User is already validated and set by the controller, no need to re-fetch
+        logger.info("User relationship already established: {}", entity.getUser().getUsername());
         
         return super.register(entity);
     }
 
     @Override
     public Namespace modify(Namespace entity) {
-        logger.info("Modifying namespace with explicit user relationship handling");
-        
-        // Ensure the user relationship is properly maintained
-        if (entity.getUser() != null && entity.getUser().getId() != null) {
-            Optional<User> user = userRepo.findById(entity.getUser().getId());
-            if (user.isPresent()) {
-                entity.setUser(user.get());
-                logger.info("User relationship maintained for namespace update");
-            } else {
-                logger.error("User not found with ID: {}", entity.getUser().getId());
-                throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
-            }
-        }
-        
+        logger.info("Modifying namespace - user relationship maintained from controller");
         return super.modify(entity);
     }
 

@@ -11,12 +11,10 @@ import org.slf4j.LoggerFactory;
 import com.zekret.model.Credential;
 import com.zekret.model.CredentialType;
 import com.zekret.model.Namespace;
-import com.zekret.model.User;
 import com.zekret.repo.ICredentialRepo;
 import com.zekret.repo.ICredentialTypeRepo;
 import com.zekret.repo.IGenericRepo;
 import com.zekret.repo.INamespaceRepo;
-import com.zekret.repo.IUserRepo;
 import com.zekret.service.ICredentialService;
 
 @Service
@@ -25,9 +23,6 @@ public class CredentialServiceImpl extends CRUDImpl<Credential, Long> implements
     private static final Logger logger = LoggerFactory.getLogger(CredentialServiceImpl.class);
 
     private final ICredentialRepo credentialRepo;
-    
-    @Autowired
-    private IUserRepo userRepo;
     
     @Autowired
     private INamespaceRepo namespaceRepo;
@@ -43,17 +38,8 @@ public class CredentialServiceImpl extends CRUDImpl<Credential, Long> implements
     public Credential register(Credential entity) {
         logger.info("Registering credential with explicit relationship handling");
         
-        // Ensure the user relationship is properly set by ID
-        if (entity.getUser() != null && entity.getUser().getId() != null) {
-            Optional<User> user = userRepo.findById(entity.getUser().getId());
-            if (user.isPresent()) {
-                entity.setUser(user.get());
-                logger.info("User relationship established for credential");
-            } else {
-                logger.error("User not found with ID: {}", entity.getUser().getId());
-                throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
-            }
-        }
+        // User is already validated and set by the controller, no need to re-fetch
+        logger.info("User relationship already established: {}", entity.getUser().getUsername());
         
         // Ensure the namespace relationship is properly set by ZRN
         if (entity.getNamespace() != null && entity.getNamespace().getZrn() != null) {
@@ -91,17 +77,8 @@ public class CredentialServiceImpl extends CRUDImpl<Credential, Long> implements
     public Credential modify(Credential entity) {
         logger.info("Modifying credential with explicit relationship handling");
         
-        // Ensure the user relationship is properly maintained
-        if (entity.getUser() != null && entity.getUser().getId() != null) {
-            Optional<User> user = userRepo.findById(entity.getUser().getId());
-            if (user.isPresent()) {
-                entity.setUser(user.get());
-                logger.info("User relationship maintained for credential update");
-            } else {
-                logger.error("User not found with ID: {}", entity.getUser().getId());
-                throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
-            }
-        }
+        // User is already validated in the controller, no need to re-fetch
+        logger.info("User relationship already established: {}", entity.getUser().getUsername());
         
         // Note: Namespace cannot be changed once assigned
         // The namespace relationship should remain as it was originally set

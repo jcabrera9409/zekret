@@ -1,6 +1,5 @@
 package com.zekret.controller;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,8 +51,6 @@ public class NamespaceController {
             // Configure the namespace
             request.setUser(authenticatedUser);
             request.setZrn(ZrnGenerator.generateNamespaceZrn());
-            request.setCreatedAt(LocalDateTime.now());
-            request.setUpdatedAt(LocalDateTime.now());
             
             Namespace savedNamespace = namespaceService.register(request);
             
@@ -105,7 +102,6 @@ public class NamespaceController {
             // Update allowed fields
             existingNamespace.setName(request.getName());
             existingNamespace.setDescription(request.getDescription());
-            existingNamespace.setUpdatedAt(LocalDateTime.now());
             
             Namespace updatedNamespace = namespaceService.modify(existingNamespace);
             

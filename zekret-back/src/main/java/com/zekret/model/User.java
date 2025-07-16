@@ -3,6 +3,8 @@ package com.zekret.model;
 import java.time.LocalDateTime;
 import java.util.Collection;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -36,9 +38,15 @@ public class User implements UserDetails {
 	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String password;
 	
-	@Column(nullable = true)
+	@CreationTimestamp
+	@Column(nullable = false, updatable = false)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime createdAt;
+	
+	@UpdateTimestamp
+	@Column(nullable = false)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	private LocalDateTime updatedAt;
 	
 	@Column(nullable = false)
 	@JsonIgnore
@@ -86,6 +94,14 @@ public class User implements UserDetails {
 		this.createdAt = createdAt;
 	}
 	
+	public LocalDateTime getUpdatedAt() {
+		return updatedAt;
+	}
+
+	public void setUpdatedAt(LocalDateTime updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
 	@Override
 	public boolean isEnabled() {
 		return enabled;

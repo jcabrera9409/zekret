@@ -2,6 +2,9 @@ package com.zekret.model;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -32,11 +35,13 @@ public class Namespace {
 	@Column(nullable = false)
 	private String description;
 	
-	@Column(nullable = true)
+	@CreationTimestamp
+	@Column(nullable = false, updatable = false)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime createdAt;
 	
-	@Column(nullable = true)
+	@UpdateTimestamp
+	@Column(nullable = false)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime updatedAt;
 	

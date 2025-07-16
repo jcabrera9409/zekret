@@ -1,7 +1,5 @@
 package com.zekret.controller;
 
-import java.time.LocalDateTime;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +24,7 @@ public class UserController {
     
     @PostMapping("/register")
     public ResponseEntity<APIResponseDTO<User>> registerUser(@RequestBody User request) {
-    	logger.info("Registering user: {}", request.getUsername());
-    	request.setCreatedAt(LocalDateTime.now());
-    	
+    	logger.info("Registering user: {}", request.getUsername());    	
     	User newUser = userService.register(request);
     	APIResponseDTO<User> response = (newUser != null) 
 			? APIResponseDTO.success("User registered successfully", newUser, HttpStatus.CREATED.value())

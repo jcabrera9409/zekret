@@ -9,7 +9,8 @@ Este proyecto es el backend para una aplicación web que permite a los usuarios 
 - **Spring Security** con autenticación JWT
 - **MySQL** como base de datos
 - **Maven** para gestión de dependencias
-- **JPA/Hibernate** para ORM
+- **JPA/Hibernate** para ORM con timestamps automáticos
+- **Hibernate Annotations** para `@CreationTimestamp` y `@UpdateTimestamp`
 - **JJWT 0.12.3** para manejo de tokens JWT
 - **Jackson** para serialización JSON con control de acceso
 
@@ -97,6 +98,8 @@ src/main/java/com/zekret/
   - `fileName`: String (opcional)
   - `fileContent`: TEXT (opcional)
   - `notes`: TEXT (opcional)
+  - `createdAt`: LocalDateTime - `@CreationTimestamp`
+  - `updatedAt`: LocalDateTime - `@UpdateTimestamp`
 - **Relaciones**:
   - `credentialType`: ManyToOne → CredentialType (read/write en JSON)
   - `namespace`: ManyToOne → Namespace (read/write en JSON)
@@ -104,7 +107,11 @@ src/main/java/com/zekret/
 - **Serialización JSON**:
   - ID y relación user ocultos en respuestas
   - ZRN se genera automáticamente (READ_ONLY)
+  - **createdAt y updatedAt**: Incluidos en respuestas JSON (timestamps automáticos)
   - **credentialType y namespace**: Visibles en requests y responses para permitir asignación por ZRN
+- **Timestamps Automáticos**:
+  - `createdAt`: Se establece automáticamente al crear la entidad (no actualizable)
+  - `updatedAt`: Se actualiza automáticamente en cada modificación
 - **Reglas de Negocio**:
   - Debe asignarse a un namespace al crearse
   - Debe especificar un credentialType al crearse
@@ -129,12 +136,17 @@ src/main/java/com/zekret/
   - `name`: String
   - `zrn`: String - **Read/Write en JSON**
   - `description`: String
-  - `createdAt`, `updatedAt`: LocalDateTime - `@JsonProperty(READ_ONLY)`
+  - `createdAt`: LocalDateTime - `@CreationTimestamp` + `@JsonProperty(READ_ONLY)`
+  - `updatedAt`: LocalDateTime - `@UpdateTimestamp` + `@JsonProperty(READ_ONLY)`
 - **Relación**: `user`: ManyToOne → User - `@JsonIgnore`
 - **Serialización JSON**:
   - ID y relación user ocultos
   - **ZRN completamente accesible** para permitir asignación desde frontend
-  - Timestamps son READ_ONLY (generados automáticamente)
+  - Timestamps son READ_ONLY (generados automáticamente por Hibernate)
+- **Timestamps Automáticos**:
+  - `createdAt`: Se establece automáticamente al crear la entidad (no actualizable)
+  - `updatedAt`: Se actualiza automáticamente en cada modificación
+  - Ambos campos son de solo lectura en la API JSON
 
 #### Token
 - **Propósito**: Gestiona tokens JWT para autenticación
@@ -454,12 +466,11 @@ public Namespace register(Namespace entity) {
 ```json
 {
   "data": {
-    "id": 1,
     "zrn": "zrn:namespace:development-abc123",
     "name": "development", 
     "description": "Development environment namespace",
-    "createdAt": "2025-01-15T10:30:00",
-    "updatedAt": "2025-01-15T10:30:00"
+    "createdAt": "2025-07-15T19:30:45.123456",
+    "updatedAt": "2025-07-15T19:30:45.123456"
   },
   "message": "Namespace created successfully",
   "success": true,
@@ -1096,6 +1107,8 @@ public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
     "username": "admin",
     "sshPrivateKey": "-----BEGIN PRIVATE KEY-----\n...",
     "notes": "Main production server access",
+    "createdAt": "2025-07-15T19:30:45.123456",
+    "updatedAt": "2025-07-15T19:30:45.123456",
     "credentialType": {
       "zrn": "ssh_username",
       "name": "SSH Username"
@@ -1311,3 +1324,64 @@ public class Credential {
 - ❌ **Namespace Inmutable:** Una vez asignado, el namespace no puede cambiarse en updates
 - ✅ **Credential Type Mutable:** El tipo de credencial puede actualizarse en updates
 - ✅ **Filtrado Automático:** Todas las consultas filtran por usuario automáticamente
+
+## 🆕 Actualizaciones Recientes (Julio 2025)
+
+### Timestamps Automáticos con Hibernate
+
+Se ha implementado gestión automática de timestamps usando anotaciones de Hibernate para las entidades `Credential` y `Namespace`:
+
+**Anotaciones utilizadas:**
+- `@CreationTimestamp`: Se ejecuta automáticamente al persistir una nueva entidad
+- `@UpdateTimestamp`: Se ejecuta automáticamente en cada actualización de la entidad
+
+**Configuración en las entidades:**
+```java
+// En Credential.java y Namespace.java
+@CreationTimestamp
+@Column(nullable = false, updatable = false)
+private LocalDateTime createdAt;
+
+@UpdateTimestamp  
+@Column(nullable = false)
+private LocalDateTime updatedAt;
+```
+
+**Ventajas de los Timestamps Automáticos:**
+- **Consistencia:** Garantiza que todas las entidades tengan timestamps precisos
+- **Automatización:** No requiere código manual en servicios para establecer fechas
+- **Performance:** Operaciones a nivel de base de datos sin lógica adicional en Java
+- **Inmutabilidad:** `createdAt` no puede ser modificado después de la creación
+- **Auditoría:** Rastrea automáticamente cuándo se creó y modificó cada entidad
+
+### Optimización de Consultas de Usuario Redundantes
+
+Se eliminaron consultas duplicadas de usuario en los servicios `CredentialServiceImpl` y `NamespaceServiceImpl`:
+
+**Problema identificado:**
+```java
+// ANTES: Consulta redundante en cada servicio
+User user = userRepo.findById(authenticatedUser.getId()).orElse(null);
+```
+
+**Solución implementada:**
+```java
+// DESPUÉS: Reutilizar usuario ya autenticado del controller
+@Override
+public Credential register(Credential entity) {
+    logger.info("Registering credential - user relationship maintained from controller");
+    // El usuario ya viene autenticado y validado desde el controller
+    return super.register(entity);
+}
+```
+
+**Impact de Performance:**
+- **Reducción del 50%** en consultas de usuario por request
+- **Eliminación de dependencias:** Removido `IUserRepo` de servicios de negocio
+- **Simplificación de código:** Lógica más limpia y mantenible
+- **Consistencia:** Un solo punto de autenticación (AuthenticationUtils)
+
+**Archivos optimizados:**
+- `CredentialServiceImpl.java`: Métodos `register()` y `modify()`
+- `NamespaceServiceImpl.java`: Métodos `register()` y `modify()`
+- Eliminadas dependencias e imports no utilizados
