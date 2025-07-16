@@ -25,7 +25,6 @@ public class Credential {
 	private String title;
 	
 	@Column(nullable = false, unique = true)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private String zrn;
 	
 	@Column(nullable = true)
@@ -52,6 +51,10 @@ public class Credential {
 	@ManyToOne
 	@JoinColumn(name = "id_credential_type", nullable = true)
 	private CredentialType credentialType;
+	
+	@ManyToOne
+	@JoinColumn(name = "id_namespace", nullable = true)
+	private Namespace namespace;
 	
 	@ManyToOne
 	@JoinColumn(name = "id_user", nullable = true)
@@ -144,6 +147,14 @@ public class Credential {
 
 	public void setCredentialType(CredentialType credentialType) {
 		this.credentialType = credentialType;
+	}
+
+	public Namespace getNamespace() {
+		return namespace;
+	}
+
+	public void setNamespace(Namespace namespace) {
+		this.namespace = namespace;
 	}
 
 	public User getUser() {

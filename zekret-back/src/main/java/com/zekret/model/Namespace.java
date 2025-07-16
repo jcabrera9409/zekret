@@ -27,7 +27,6 @@ public class Namespace {
 	private String name;
 	
 	@Column(nullable = false, unique = true)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private String zrn;
 	
 	@Column(nullable = false)

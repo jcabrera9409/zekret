@@ -98,34 +98,43 @@ src/main/java/com/zekret/
   - `fileContent`: TEXT (opcional)
   - `notes`: TEXT (opcional)
 - **Relaciones**:
-  - `credentialType`: ManyToOne → CredentialType
+  - `credentialType`: ManyToOne → CredentialType (read/write en JSON)
+  - `namespace`: ManyToOne → Namespace (read/write en JSON)
   - `user`: ManyToOne → User - `@JsonIgnore`
 - **Serialización JSON**:
   - ID y relación user ocultos en respuestas
   - ZRN se genera automáticamente (READ_ONLY)
+  - **credentialType y namespace**: Visibles en requests y responses para permitir asignación por ZRN
+- **Reglas de Negocio**:
+  - Debe asignarse a un namespace al crearse
+  - Debe especificar un credentialType al crearse
+  - Namespace no puede cambiarse una vez asignado
+  - CredentialType puede actualizarse via ZRN
+  - Filtrado automático por usuario en todas las consultas
 
 #### CredentialType
 - **Propósito**: Define tipos de credenciales (password, ssh, token, archivo, etc.)
 - **Campos**:
   - `id`: Long (PK) - `@JsonIgnore`
-  - `zrn`: String (único, formato slug) - `@JsonProperty(READ_ONLY)`
+  - `zrn`: String (único, formato slug) - **Read/Write en JSON**
   - `name`: String
 - **Serialización JSON**:
   - ID oculto en respuestas
-  - ZRN generado automáticamente como slug (READ_ONLY)
+  - **ZRN completamente accesible** para permitir asignación desde frontend
 
 #### Namespace
 - **Propósito**: Agrupa credenciales por categorías/proyectos
 - **Campos**:
   - `id`: Long (PK) - `@JsonIgnore`
   - `name`: String
-  - `zrn`: String - `@JsonProperty(READ_ONLY)`
+  - `zrn`: String - **Read/Write en JSON**
   - `description`: String
   - `createdAt`, `updatedAt`: LocalDateTime - `@JsonProperty(READ_ONLY)`
 - **Relación**: `user`: ManyToOne → User - `@JsonIgnore`
 - **Serialización JSON**:
   - ID y relación user ocultos
-  - ZRN y timestamps son READ_ONLY (generados automáticamente)
+  - **ZRN completamente accesible** para permitir asignación desde frontend
+  - Timestamps son READ_ONLY (generados automáticamente)
 
 #### Token
 - **Propósito**: Gestiona tokens JWT para autenticación
@@ -319,7 +328,7 @@ private User getAuthenticatedUserFromToken(String authorizationHeader) {
 ### Gestión de Namespaces
 
 **Nota**: Todos los ejemplos de namespace requieren el header de autorización:
-`Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+`Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9`
 
 #### Crear Namespace
 ```bash
@@ -722,7 +731,7 @@ El proyecto utiliza **Jackson** para la serialización/deserialización JSON con
 #### `@JsonIgnore`
 Campos completamente ocultos en JSON (ni lectura ni escritura):
 - **IDs de entidades**: Para evitar exposición de claves primarias
-- **Relaciones de entidades**: Para prevenir referencias circulares
+- **Relaciones sensibles**: Como `user` para prevenir manipulación
 - **Campos internos**: Como `enabled` en User
 
 #### `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)`
@@ -731,16 +740,41 @@ Campos que solo se aceptan en requests (no aparecen en responses):
 
 #### `@JsonProperty(access = JsonProperty.Access.READ_ONLY)`
 Campos que solo aparecen en responses (se ignoran en requests):
-- **ZRN**: Generados automáticamente por el sistema
-- **Timestamps**: createdAt, updatedAt
+- **ZRN de Credential**: Generado automáticamente por el sistema
+- **Timestamps**: createdAt, updatedAt en Namespace
 - **Campos calculados**: No pueden ser modificados por el cliente
+
+#### **Campos Read/Write (Sin anotaciones restrictivas)**
+Campos completamente accesibles para lectura y escritura:
+- **ZRN en CredentialType y Namespace**: Permiten asignación desde frontend
+- **Relaciones credential ↔ namespace/credentialType**: Para establecer relaciones por ZRN
 
 ### Beneficios de Seguridad
 
 1. **Protección de passwords**: Nunca se exponen en respuestas JSON
 2. **Ocultación de IDs**: Las claves primarias no son visibles
 3. **Prevención de manipulación**: Campos READ_ONLY no pueden ser alterados
-4. **Referencias limpias**: Las relaciones no causan loops infinitos
+4. **Flexibilidad de asignación**: ZRNs accesibles para establecer relaciones
+5. **Referencias limpias**: Las relaciones no causan loops infinitos
+
+### Cambios Importantes en Serialización
+
+⚠️ **Actualización crítica**: Los campos `zrn` en `CredentialType` y `Namespace` ahora son **completamente accesibles** (read/write) para permitir que el frontend pueda:
+
+- **Enviar credentialType.zrn** en requests de creación/actualización
+- **Enviar namespace.zrn** en requests de creación  
+- **Recibir objetos completos** en responses con toda la información
+
+**Antes (problemático):**
+```java
+@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+private String zrn; // ❌ No se podía escribir desde frontend
+```
+
+**Ahora (correcto):**
+```java
+private String zrn; // ✅ Completamente accesible
+```
 
 ### Ejemplos de JSON
 
@@ -768,7 +802,13 @@ Campos que solo aparecen en responses (se ignoran en requests):
   "title": "Mi servidor SSH",
   "username": "root",
   "sshPrivateKey": "-----BEGIN PRIVATE KEY-----...",
-  "notes": "Servidor de producción"
+  "notes": "Servidor de producción",
+  "namespace": {
+    "zrn": "zrn:zekret:namespace:20250715:uuid-here"
+  },
+  "credentialType": {
+    "zrn": "ssh_username"
+  }
 }
 ```
 
@@ -781,8 +821,13 @@ Campos que solo aparecen en responses (se ignoran en requests):
   "sshPrivateKey": "-----BEGIN PRIVATE KEY-----...",
   "notes": "Servidor de producción",
   "credentialType": {
-    "zrn": "ssh_credential",
-    "name": "SSH Credential"
+    "zrn": "ssh_username",
+    "name": "SSH Username"
+  },
+  "namespace": {
+    "zrn": "zrn:zekret:namespace:20250715:uuid-here",
+    "name": "Production",
+    "description": "Production environment"
   }
 }
 ```
@@ -877,7 +922,61 @@ mvn clean install -U  # Forzar actualización de dependencias
 
 Este proyecto está bajo la licencia MIT - ver el archivo [LICENSE](../LICENSE) para más detalles.
 
-## 🚀 Optimizaciones de Performance
+## � **Resolución de Problemas de Serialización**
+
+### Problema Identificado y Solucionado
+
+Durante el desarrollo se identificó un problema crítico con la deserialización JSON de relaciones en credenciales:
+
+#### ❌ **Problema Original:**
+- Los campos `zrn` en `CredentialType` y `Namespace` tenían `@JsonProperty(access = READ_ONLY)`
+- El frontend no podía enviar `credentialType.zrn` y `namespace.zrn` en requests
+- Error: `"Namespace ZRN is required"` aunque se enviara correctamente en JSON
+
+#### ✅ **Solución Implementada:**
+1. **Removido `@JsonProperty(access = READ_ONLY)`** de los campos `zrn`
+2. **Permitido acceso completo** (read/write) a los ZRNs de relaciones
+3. **Mantenido `@JsonIgnore`** solo en IDs y relación `user`
+
+#### 🎯 **Resultado:**
+- ✅ Frontend puede enviar `namespace.zrn` y `credentialType.zrn` 
+- ✅ Backend deserializa correctamente las relaciones
+- ✅ Responses incluyen objetos completos con toda la información
+- ✅ Sistema funciona end-to-end desde frontend hasta base de datos
+
+### Arquitectura de Serialización Actualizada
+
+```java
+// ✅ CORRECTO - Acceso completo para asignación por ZRN
+@Entity
+public class CredentialType {
+    @JsonIgnore private Long id;           // Oculto
+    private String zrn;                     // ✅ Read/Write
+    private String name;                    // ✅ Read/Write
+}
+
+@Entity  
+public class Namespace {
+    @JsonIgnore private Long id;           // Oculto
+    private String zrn;                     // ✅ Read/Write  
+    private String name;                    // ✅ Read/Write
+    @JsonProperty(READ_ONLY) 
+    private LocalDateTime createdAt;        // Solo lectura
+}
+
+@Entity
+public class Credential {
+    @JsonIgnore private Long id;           // Oculto
+    @JsonProperty(READ_ONLY) 
+    private String zrn;                     // Solo lectura (auto-generado)
+    private String title;                   // ✅ Read/Write
+    private CredentialType credentialType; // ✅ Read/Write (para asignación)
+    private Namespace namespace;            // ✅ Read/Write (para asignación)
+    @JsonIgnore private User user;         // Oculto (seguridad)
+}
+```
+
+## �🚀 Optimizaciones de Performance
 
 ### AuthenticationUtils - Clase Utilitaria Genérica
 Creada una clase utilitaria reutilizable para autenticación JWT que puede ser utilizada en todos los controladores:
@@ -932,14 +1031,6 @@ public interface INamespaceRepo extends IGenericRepo<Namespace, Long> {
 }
 ```
 
-**Ventajas de usar Convenciones JPA:**
-- ✅ **Código más limpio:** No necesita `@Query` ni `@Param`
-- ✅ **Menos propenso a errores:** Spring genera las consultas automáticamente
-- ✅ **Autocompletado:** IDEs pueden ayudar con la nomenclatura
-- ✅ **Mantenimiento:** Cambios en entidades se reflejan automáticamente
-- ✅ **Estándar:** Sigue las convenciones de Spring Data JPA
-```
-
 ### Métodos de Servicio Optimizados
 Servicios que utilizan las consultas optimizadas del repository:
 
@@ -961,28 +1052,262 @@ public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
 - **Índices Optimizados:** Consultas que aprovechan índices de user_id y zrn
 - **Escalabilidad:** Performance constante independiente del crecimiento de datos
 
-### Comparación de Performance
+### CredentialController (Optimizado)
 
-#### ❌ **Antes (Ineficiente):**
-```java
-// Carga TODOS los namespaces de TODOS los usuarios
-List<Namespace> allNamespaces = namespaceService.getAll(); // SELECT * FROM namespace
+**Ruta base:** `/api/v1/credentials`
+**Autenticación:** Requerida en header `Authorization: Bearer <token>`
 
-// Filtra en memoria Java (costoso)
-List<Namespace> userNamespaces = allNamespaces.stream()
-    .filter(ns -> ns.getUser().getId().equals(authenticatedUser.getId()))
-    .toList();
+**Características Clave:**
+- ✅ **Asignación de Namespace:** Cada credential debe ser asignado a un namespace del usuario
+- ✅ **Asignación de Credential Type:** Cada credential debe especificar un tipo vía ZRN
+- ✅ **Namespace Inmutable:** Una vez asignado, el namespace no puede cambiarse
+- ✅ **Credential Type Mutable:** El tipo de credencial puede actualizarse vía ZRN
+- ✅ **Queries Optimizadas:** Consultas específicas por usuario, ZRN y namespace
+- ✅ **Validación de Pertenencia:** Verifica que namespace y credential pertenezcan al usuario
+- ✅ **Validación de Tipo:** Verifica que el credential type exista en el sistema
+- ✅ **AuthenticationUtils:** Reutiliza autenticación genérica
+
+**Endpoints REST Optimizados:**
+
+#### 1. Crear Credential
+- **Endpoint:** `POST /api/v1/credentials`
+- **Descripción:** Crea una nueva credencial asignada a un namespace del usuario
+- **Body Request:**
+```json
+{
+  "title": "Production SSH Server",
+  "username": "admin",
+  "sshPrivateKey": "-----BEGIN PRIVATE KEY-----\n...",
+  "notes": "Main production server access",
+  "namespace": {
+    "zrn": "zrn:namespace:production-xyz789"
+  },
+  "credentialType": {
+    "zrn": "ssh_username"
+  }
+}
+```
+- **Response:**
+```json
+{
+  "data": {
+    "zrn": "zrn:credential:production-ssh-abc123",
+    "title": "Production SSH Server",
+    "username": "admin",
+    "sshPrivateKey": "-----BEGIN PRIVATE KEY-----\n...",
+    "notes": "Main production server access",
+    "credentialType": {
+      "zrn": "ssh_username",
+      "name": "SSH Username"
+    }
+  },
+  "message": "Credential created successfully",
+  "success": true,
+  "statusCode": 201
+}
 ```
 
-#### ✅ **Ahora (Optimizado):**
-```java
-// Solo carga namespaces del usuario específico
-List<Namespace> userNamespaces = namespaceService.getNamespacesByUserId(authenticatedUser.getId());
-// SELECT n FROM Namespace n WHERE n.user.id = :userId
+#### 2. Actualizar Credential
+- **Endpoint:** `PUT /api/v1/credentials/{zrn}`
+- **Descripción:** Actualiza una credencial existente (namespace no puede cambiarse, credential type sí)
+- **Body Request:**
+```json
+{
+  "title": "Updated Production SSH Server",
+  "username": "root",
+  "sshPrivateKey": "-----BEGIN PRIVATE KEY-----\nUPDATED_KEY_CONTENT...",
+  "notes": "Updated server access credentials",
+  "credentialType": {
+    "zrn": "username_password"
+  }
+}
 ```
 
-**Mejora de Performance:**
-- **Tiempo de consulta:** Reducido de O(n) a O(log n) con índices
-- **Uso de memoria:** Reducido dramáticamente (solo datos del usuario)
-- **Transferencia de red:** Menor cantidad de datos transferidos
-- **Escalabilidad:** Performance no se degrada con crecimiento de usuarios
+#### 3. Obtener Credential por ZRN
+- **Endpoint:** `GET /api/v1/credentials/{zrn}`
+- **Descripción:** Obtiene una credencial específica por su ZRN
+
+#### 4. Listar Todas las Credentials
+- **Endpoint:** `GET /api/v1/credentials`
+- **Descripción:** Obtiene todas las credenciales del usuario autenticado
+- **Response:**
+```json
+{
+  "data": [
+    {
+      "zrn": "zrn:credential:production-ssh-abc123",
+      "title": "Production SSH Server",
+      "username": "admin",
+      "notes": "Main production server access"
+    }
+  ],
+  "message": "Credentials retrieved successfully",
+  "success": true,
+  "statusCode": 200
+}
+```
+
+#### 5. Eliminar Credential
+- **Endpoint:** `DELETE /api/v1/credentials/{zrn}`
+- **Descripción:** Elimina físicamente una credencial del usuario
+
+#### 6. Listar Credentials por Namespace
+- **Endpoint:** `GET /api/v1/credentials/namespace/{namespaceZrn}`
+- **Descripción:** Obtiene todas las credenciales de un namespace específico del usuario
+- **Response:**
+```json
+{
+  "data": [
+    {
+      "zrn": "zrn:credential:prod-db-def456",
+      "title": "Production Database",
+      "username": "dbuser",
+      "password": "encrypted_password",
+      "notes": "Main production database",
+      "credentialType": {
+        "zrn": "username_password",
+        "name": "Username/Password"
+      }
+    },
+    {
+      "zrn": "zrn:credential:prod-ssh-abc123",
+      "title": "Production SSH Server", 
+      "username": "admin",
+      "sshPrivateKey": "-----BEGIN PRIVATE KEY-----\n...",
+      "notes": "Main production server access",
+      "credentialType": {
+        "zrn": "ssh_username",
+        "name": "SSH Username"
+      }
+    }
+  ],
+  "message": "Credentials retrieved successfully for namespace",
+  "success": true,
+  "statusCode": 200
+}
+```
+
+### Ejemplos de Diferentes Tipos de Credenciales
+
+#### Credential con Username/Password
+```json
+{
+  "title": "Database Connection",
+  "username": "dbuser",
+  "password": "secure_password_123",
+  "notes": "Production database credentials",
+  "namespace": {
+    "zrn": "zrn:namespace:production-xyz789"
+  },
+  "credentialType": {
+    "zrn": "username_password"
+  }
+}
+```
+
+#### Credential con SSH Key
+```json
+{
+  "title": "Server SSH Access",
+  "username": "admin",
+  "sshPrivateKey": "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA...",
+  "notes": "SSH access to production server",
+  "namespace": {
+    "zrn": "zrn:namespace:production-xyz789"
+  },
+  "credentialType": {
+    "zrn": "ssh_username"
+  }
+}
+```
+
+#### Credential con Secret Text
+```json
+{
+  "title": "API Token",
+  "secretText": "sk_live_abc123def456ghi789...",
+  "notes": "Stripe API production token",
+  "namespace": {
+    "zrn": "zrn:namespace:production-xyz789"
+  },
+  "credentialType": {
+    "zrn": "secret_text"
+  }
+}
+```
+
+#### Credential con File
+```json
+{
+  "title": "SSL Certificate",
+  "fileName": "server.crt",
+  "fileContent": "-----BEGIN CERTIFICATE-----\nMIIDXTCCAkWgAwIBAgIJA...",
+  "notes": "Production SSL certificate",
+  "namespace": {
+    "zrn": "zrn:namespace:production-xyz789"
+  },
+  "credentialType": {
+    "zrn": "file"
+  }
+}
+```
+
+### Tipos de Credenciales Disponibles
+
+El sistema maneja diferentes tipos de credenciales identificados por ZRN:
+
+| ZRN | Nombre | Campos Requeridos | Descripción |
+|-----|--------|------------------|-------------|
+| `username_password` | Username/Password | `username`, `password` | Credenciales tradicionales de usuario y contraseña |
+| `ssh_username` | SSH Username | `username`, `sshPrivateKey` | Acceso SSH con clave privada |
+| `secret_text` | Secret Text | `secretText` | Tokens, códigos, o texto secreto |
+| `file` | File | `fileName`, `fileContent` | Archivos como certificados, llaves, configuraciones |
+
+**Campos Opcionales para Todos los Tipos:**
+- `title`: Título descriptivo (requerido)
+- `notes`: Notas adicionales sobre la credencial
+- `namespace`: Namespace de organización (requerido)
+- `credentialType`: Tipo de credencial (requerido)
+
+### Optimizaciones de Credential Repository
+Consultas específicas usando convenciones de Spring Data JPA:
+
+```java
+public interface ICredentialRepo extends IGenericRepo<Credential, Long> {
+    
+    // SELECT c FROM Credential c WHERE c.user.id = :userId
+    List<Credential> findByUserId(Long userId);
+    
+    // SELECT c FROM Credential c WHERE c.zrn = :zrn AND c.user.id = :userId
+    Optional<Credential> findByZrnAndUserId(String zrn, Long userId);
+    
+    // SELECT c FROM Credential c WHERE c.namespace.zrn = :namespaceZrn AND c.user.id = :userId
+    List<Credential> findByNamespaceZrnAndUserId(String namespaceZrn, Long userId);
+    
+    // SELECT COUNT(c) > 0 FROM Credential c WHERE c.zrn = :zrn AND c.user.id = :userId
+    boolean existsByZrnAndUserId(String zrn, Long userId);
+}
+```
+
+### Relación Credential ↔ Namespace
+Cada credencial está asignada a un namespace específico:
+
+```java
+@Entity
+public class Credential {
+    @ManyToOne
+    @JoinColumn(name = "id_namespace", nullable = true)
+    @JsonIgnore
+    private Namespace namespace;
+    
+    // ...otros campos
+}
+```
+
+**Reglas de Negocio:**
+- ✅ **Asignación Requerida:** Cada credential debe especificar `namespace.zrn` y `credentialType.zrn` al crearse
+- ✅ **Validación de Pertenencia:** El namespace debe pertenecer al usuario autenticado
+- ✅ **Validación de Tipo:** El credential type debe existir en el sistema
+- ❌ **Namespace Inmutable:** Una vez asignado, el namespace no puede cambiarse en updates
+- ✅ **Credential Type Mutable:** El tipo de credencial puede actualizarse en updates
+- ✅ **Filtrado Automático:** Todas las consultas filtran por usuario automáticamente

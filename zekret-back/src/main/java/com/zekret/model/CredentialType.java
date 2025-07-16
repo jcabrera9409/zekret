@@ -1,7 +1,6 @@
 package com.zekret.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,7 +19,6 @@ public class CredentialType {
 	private Long id;
 	
 	@Column(nullable = false, unique = true)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private String zrn;
 	
 	@Column(nullable = false)

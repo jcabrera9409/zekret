@@ -1,12 +1,22 @@
 package com.zekret.service.impl;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.zekret.model.Credential;
+import com.zekret.model.CredentialType;
+import com.zekret.model.Namespace;
+import com.zekret.model.User;
 import com.zekret.repo.ICredentialRepo;
+import com.zekret.repo.ICredentialTypeRepo;
 import com.zekret.repo.IGenericRepo;
+import com.zekret.repo.INamespaceRepo;
+import com.zekret.repo.IUserRepo;
 import com.zekret.service.ICredentialService;
 
 @Service
@@ -15,9 +25,133 @@ public class CredentialServiceImpl extends CRUDImpl<Credential, Long> implements
     private static final Logger logger = LoggerFactory.getLogger(CredentialServiceImpl.class);
 
     private final ICredentialRepo credentialRepo;
+    
+    @Autowired
+    private IUserRepo userRepo;
+    
+    @Autowired
+    private INamespaceRepo namespaceRepo;
+    
+    @Autowired
+    private ICredentialTypeRepo credentialTypeRepo;
 
     public CredentialServiceImpl(ICredentialRepo credentialRepo) {
         this.credentialRepo = credentialRepo;
+    }
+
+    @Override
+    public Credential register(Credential entity) {
+        logger.info("Registering credential with explicit relationship handling");
+        
+        // Ensure the user relationship is properly set by ID
+        if (entity.getUser() != null && entity.getUser().getId() != null) {
+            Optional<User> user = userRepo.findById(entity.getUser().getId());
+            if (user.isPresent()) {
+                entity.setUser(user.get());
+                logger.info("User relationship established for credential");
+            } else {
+                logger.error("User not found with ID: {}", entity.getUser().getId());
+                throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
+            }
+        }
+        
+        // Ensure the namespace relationship is properly set by ZRN
+        if (entity.getNamespace() != null && entity.getNamespace().getZrn() != null) {
+            Optional<Namespace> namespace = namespaceRepo.findByZrnAndUserId(
+                entity.getNamespace().getZrn(), 
+                entity.getUser().getId()
+            );
+            if (namespace.isPresent()) {
+                entity.setNamespace(namespace.get());
+                logger.info("Namespace relationship established for credential: {}", namespace.get().getZrn());
+            } else {
+                logger.error("Namespace not found or access denied: {}", entity.getNamespace().getZrn());
+                throw new RuntimeException("Namespace not found or access denied: " + entity.getNamespace().getZrn());
+            }
+        }
+        
+        // Ensure the credential type relationship is properly set by ZRN
+        if (entity.getCredentialType() != null && entity.getCredentialType().getZrn() != null) {
+            Optional<CredentialType> credentialType = credentialTypeRepo.findByZrn(
+                entity.getCredentialType().getZrn()
+            );
+            if (credentialType.isPresent()) {
+                entity.setCredentialType(credentialType.get());
+                logger.info("Credential type relationship established: {}", credentialType.get().getZrn());
+            } else {
+                logger.error("Credential type not found: {}", entity.getCredentialType().getZrn());
+                throw new RuntimeException("Credential type not found: " + entity.getCredentialType().getZrn());
+            }
+        }
+        
+        return super.register(entity);
+    }
+
+    @Override
+    public Credential modify(Credential entity) {
+        logger.info("Modifying credential with explicit relationship handling");
+        
+        // Ensure the user relationship is properly maintained
+        if (entity.getUser() != null && entity.getUser().getId() != null) {
+            Optional<User> user = userRepo.findById(entity.getUser().getId());
+            if (user.isPresent()) {
+                entity.setUser(user.get());
+                logger.info("User relationship maintained for credential update");
+            } else {
+                logger.error("User not found with ID: {}", entity.getUser().getId());
+                throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
+            }
+        }
+        
+        // Note: Namespace cannot be changed once assigned
+        // The namespace relationship should remain as it was originally set
+        if (entity.getNamespace() != null && entity.getNamespace().getId() != null) {
+            Optional<Namespace> namespace = namespaceRepo.findById(entity.getNamespace().getId());
+            if (namespace.isPresent()) {
+                entity.setNamespace(namespace.get());
+                logger.info("Namespace relationship maintained for credential update");
+            }
+        }
+        
+        // Handle credential type relationship if ZRN is provided for update
+        if (entity.getCredentialType() != null && entity.getCredentialType().getZrn() != null) {
+            Optional<CredentialType> credentialType = credentialTypeRepo.findByZrn(
+                entity.getCredentialType().getZrn()
+            );
+            if (credentialType.isPresent()) {
+                entity.setCredentialType(credentialType.get());
+                logger.info("Credential type relationship updated: {}", credentialType.get().getZrn());
+            } else {
+                logger.error("Credential type not found: {}", entity.getCredentialType().getZrn());
+                throw new RuntimeException("Credential type not found: " + entity.getCredentialType().getZrn());
+            }
+        }
+        
+        return super.modify(entity);
+    }
+
+    @Override
+    public List<Credential> getCredentialsByUserId(Long userId) {
+        logger.info("Getting credentials for user ID: {}", userId);
+        return credentialRepo.findByUserId(userId);
+    }
+
+    @Override
+    public Optional<Credential> getCredentialByZrnAndUserId(String zrn, Long userId) {
+        logger.info("Getting credential by ZRN: {} for user ID: {}", zrn, userId);
+        return credentialRepo.findByZrnAndUserId(zrn, userId);
+    }
+
+    @Override
+    public List<Credential> getCredentialsByNamespaceAndUserId(String namespaceZrn, Long userId) {
+        logger.info("Getting credentials by namespace ZRN: {} for user ID: {}", namespaceZrn, userId);
+        return credentialRepo.findByNamespaceZrnAndUserId(namespaceZrn, userId);
+    }
+
+    @Override
+    public boolean existsCredentialByZrnAndUserId(String zrn, Long userId) {
+        logger.info("Checking if credential exists by ZRN: {} for user ID: {}", zrn, userId);
+        return credentialRepo.existsByZrnAndUserId(zrn, userId);
     }
 
     @Override
