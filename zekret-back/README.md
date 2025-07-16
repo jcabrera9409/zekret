@@ -7,11 +7,13 @@ Este proyecto es el backend para una aplicación web que permite a los usuarios 
 - **Java 21** (definido en pom.xml)
 - **Spring Boot 3.3.5**
 - **Spring Security** con autenticación JWT
+- **Spring Boot Actuator** para monitoreo y métricas
+- **Spring HATEOAS** para APIs REST con hipervínculos
 - **MySQL** como base de datos
 - **Maven** para gestión de dependencias
 - **JPA/Hibernate** para ORM con timestamps automáticos
 - **Hibernate Annotations** para `@CreationTimestamp` y `@UpdateTimestamp`
-- **JJWT 0.12.3** para manejo de tokens JWT
+- **JJWT 0.12.3** para manejo de tokens JWT (api, impl, jackson)
 - **Jackson** para serialización JSON con control de acceso
 
 ## Arquitectura del Proyecto
@@ -27,6 +29,7 @@ src/main/java/com/zekret/
 ├── controller/
 │   ├── UserController.java             # Controlador REST para usuarios
 │   ├── AuthenticationController.java   # Controlador REST para autenticación
+│   ├── CredentialController.java       # Controlador REST para credenciales
 │   └── NamespaceController.java        # Controlador REST para namespaces
 ├── dto/
 │   ├── APIResponseDTO.java             # DTO genérico para respuestas API
@@ -48,6 +51,7 @@ src/main/java/com/zekret/
 │   ├── JwtAuthenticationFilter.java    # Filtro JWT personalizado
 │   └── CustomLogoutHandler.java        # Manejador de logout
 ├── util/
+│   ├── AuthenticationUtils.java        # Utilidad para autenticación JWT reutilizable
 │   └── ZrnGenerator.java               # Utilidad para generar ZRN únicos
 └── service/
     ├── ICRUD.java                      # Interface CRUD genérica
@@ -78,12 +82,17 @@ src/main/java/com/zekret/
   - `email`: String (único, requerido)
   - `username`: String (requerido)
   - `password`: String (encriptado con BCrypt) - `@JsonProperty(WRITE_ONLY)`
-  - `createdAt`: LocalDateTime - `@JsonProperty(READ_ONLY)`
+  - `createdAt`: LocalDateTime - `@CreationTimestamp` + `@JsonProperty(READ_ONLY)`
+  - `updatedAt`: LocalDateTime - `@UpdateTimestamp` + `@JsonProperty(READ_ONLY)`
   - `enabled`: boolean (para activación de cuenta) - `@JsonIgnore`
 - **Serialización JSON**: 
   - Password solo se acepta en requests (WRITE_ONLY)
   - ID y enabled ocultos en respuestas
-  - CreatedAt solo se incluye en respuestas (READ_ONLY)
+  - Timestamps automáticos incluidos en respuestas (READ_ONLY)
+- **Timestamps Automáticos**:
+  - `createdAt`: Se establece automáticamente al crear el usuario (no actualizable)
+  - `updatedAt`: Se actualiza automáticamente en cada modificación del perfil
+  - Ambos campos son de solo lectura en la API JSON
 
 #### Credential
 - **Propósito**: Almacena las credenciales de los usuarios
@@ -441,7 +450,7 @@ public Namespace register(Namespace entity) {
 
 ### NamespaceController (Optimizado)
 
-**Ruta base:** `/api/v1/namespaces`
+**Ruta base:** `/v1/namespaces`
 **Autenticación:** Requerida en header `Authorization: Bearer <token>`
 
 **Optimizaciones Implementadas:**
@@ -453,7 +462,7 @@ public Namespace register(Namespace entity) {
 **Endpoints REST Optimizados:**
 
 #### 1. Crear Namespace
-- **Endpoint:** `POST /api/v1/namespaces`
+- **Endpoint:** `POST /v1/namespaces`
 - **Descripción:** Crea un nuevo namespace para el usuario autenticado
 - **Body Request:**
 ```json
@@ -479,7 +488,7 @@ public Namespace register(Namespace entity) {
 ```
 
 #### 2. Actualizar Namespace
-- **Endpoint:** `PUT /api/v1/namespaces/{zrn}`
+- **Endpoint:** `PUT /v1/namespaces/{zrn}`
 - **Descripción:** Actualiza un namespace existente
 - **Body Request:**
 ```json
@@ -490,11 +499,11 @@ public Namespace register(Namespace entity) {
 ```
 
 #### 3. Obtener Namespace por ZRN
-- **Endpoint:** `GET /api/v1/namespaces/{zrn}`
+- **Endpoint:** `GET /v1/namespaces/{zrn}`
 - **Descripción:** Obtiene un namespace específico por su ZRN
 
 #### 4. Listar Todos los Namespaces
-- **Endpoint:** `GET /api/v1/namespaces`
+- **Endpoint:** `GET /v1/namespaces`
 - **Descripción:** Obtiene todos los namespaces del usuario autenticado
 - **Response:**
 ```json
@@ -516,7 +525,7 @@ public Namespace register(Namespace entity) {
 ```
 
 #### 5. Eliminar Namespace
-- **Endpoint:** `DELETE /api/v1/namespaces/{zrn}`
+- **Endpoint:** `DELETE /v1/namespaces/{zrn}`
 - **Descripción:** Elimina físicamente un namespace del usuario
 - **Response:**
 ```json
@@ -1003,24 +1012,59 @@ public class AuthenticationUtils {
     private IUserService userService;
     
     /**
-     * Extracts and validates the authenticated user from JWT token
+     * Extracts and validates the authenticated user from the JWT token in the Authorization header
+     * @param authorizationHeader The Authorization header containing the Bearer token
+     * @return The authenticated User entity
+     * @throws RuntimeException if the header is invalid or user is not found
      */
     public User getAuthenticatedUserFromToken(String authorizationHeader) {
-        // Validation and token extraction logic
-        String token = authorizationHeader.substring(7);
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Invalid or missing Authorization header");
+        }
+        
+        String token = authorizationHeader.substring(7); // Remove "Bearer " prefix
         String username = jwtService.extractUsername(token);
         
-        // User lookup and validation
-        return userService.findByUsernameOrEmail(username);
+        // Search in all users by username or email
+        List<User> allUsers = userService.getAll();
+        Optional<User> userOpt = allUsers.stream()
+                .filter(user -> user.getUsername().equals(username) || user.getEmail().equals(username))
+                .findFirst();
+        
+        if (userOpt.isPresent()) {
+            return userOpt.get();
+        } else {
+            throw new RuntimeException("User not found: " + username);
+        }
+    }
+    
+    /**
+     * Validates that the Authorization header has the correct Bearer format
+     */
+    public boolean isValidAuthorizationHeader(String authorizationHeader) {
+        return authorizationHeader != null && authorizationHeader.startsWith("Bearer ");
+    }
+    
+    /**
+     * Extracts the token from the Authorization header
+     */
+    public String extractTokenFromHeader(String authorizationHeader) {
+        if (!isValidAuthorizationHeader(authorizationHeader)) {
+            throw new RuntimeException("Invalid Authorization header format");
+        }
+        return authorizationHeader.substring(7);
     }
 }
 ```
 
 **Ventajas:**
 - **Reutilizable:** Misma lógica de autenticación en todos los controladores
-- **Centralizada:** Un solo lugar para modificar la lógica de autenticación
+- **Centralizada:** Un solo lugar para modificar la lógica de autenticación  
+- **Flexible:** Busca usuarios por username O email
+- **Validación Robusta:** Múltiples métodos de validación de headers
 - **Testeable:** Fácil de mockear y probar independientemente
 - **Mantenible:** Cambios en autenticación se propagan automáticamente
+- **Logging Integrado:** Trazabilidad completa de autenticación
 
 ### Queries Optimizadas con Spring Data JPA
 Implementación de consultas específicas usando **convenciones de nomenclatura automática** de Spring Data JPA:
@@ -1065,7 +1109,7 @@ public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
 
 ### CredentialController (Optimizado)
 
-**Ruta base:** `/api/v1/credentials`
+**Ruta base:** `/v1/credentials`
 **Autenticación:** Requerida en header `Authorization: Bearer <token>`
 
 **Características Clave:**
@@ -1081,7 +1125,7 @@ public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
 **Endpoints REST Optimizados:**
 
 #### 1. Crear Credential
-- **Endpoint:** `POST /api/v1/credentials`
+- **Endpoint:** `POST /v1/credentials`
 - **Descripción:** Crea una nueva credencial asignada a un namespace del usuario
 - **Body Request:**
 ```json
@@ -1121,7 +1165,7 @@ public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
 ```
 
 #### 2. Actualizar Credential
-- **Endpoint:** `PUT /api/v1/credentials/{zrn}`
+- **Endpoint:** `PUT /v1/credentials/{zrn}`
 - **Descripción:** Actualiza una credencial existente (namespace no puede cambiarse, credential type sí)
 - **Body Request:**
 ```json
@@ -1137,11 +1181,11 @@ public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
 ```
 
 #### 3. Obtener Credential por ZRN
-- **Endpoint:** `GET /api/v1/credentials/{zrn}`
+- **Endpoint:** `GET /v1/credentials/{zrn}`
 - **Descripción:** Obtiene una credencial específica por su ZRN
 
 #### 4. Listar Todas las Credentials
-- **Endpoint:** `GET /api/v1/credentials`
+- **Endpoint:** `GET /v1/credentials`
 - **Descripción:** Obtiene todas las credenciales del usuario autenticado
 - **Response:**
 ```json
@@ -1161,11 +1205,11 @@ public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
 ```
 
 #### 5. Eliminar Credential
-- **Endpoint:** `DELETE /api/v1/credentials/{zrn}`
+- **Endpoint:** `DELETE /v1/credentials/{zrn}`
 - **Descripción:** Elimina físicamente una credencial del usuario
 
 #### 6. Listar Credentials por Namespace
-- **Endpoint:** `GET /api/v1/credentials/namespace/{namespaceZrn}`
+- **Endpoint:** `GET /v1/credentials/namespace/{namespaceZrn}`
 - **Descripción:** Obtiene todas las credenciales de un namespace específico del usuario
 - **Response:**
 ```json
