@@ -16,7 +16,7 @@ public class CredentialType {
 	private Long id;
 	
 	@Column(nullable = false, unique = true)
-	private String key;
+	private String zrn;
 	
 	@Column(nullable = false)
 	private String name;
@@ -29,12 +29,12 @@ public class CredentialType {
 		this.id = id;
 	}
 
-	public String getKey() {
-		return key;
+	public String getZrn() {
+		return zrn;
 	}
 
-	public void setKey(String key) {
-		this.key = key;
+	public void setZrn(String zrn) {
+		this.zrn = zrn;
 	}
 
 	public String getName() {

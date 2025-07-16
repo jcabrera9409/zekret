@@ -1,6 +1,10 @@
 package com.zekret.model;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,9 +13,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+@SuppressWarnings("serial")
 @Entity
 @Table(name = "tbl_user")
-public class User {
+public class User implements UserDetails {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,7 +25,7 @@ public class User {
 	@Column(nullable = false, unique = true)
 	private String email;
 	
-	@Column(nullable = false)
+	@Column(nullable = false, unique = true)
 	private String username;
 	
 	@Column(nullable = false)
@@ -28,6 +33,9 @@ public class User {
 	
 	@Column(nullable = true)
 	private LocalDateTime createdAt;
+	
+	@Column(nullable = false)
+	private boolean enabled = true;
 
 	public Long getId() {
 		return id;
@@ -45,6 +53,7 @@ public class User {
 		this.email = email;
 	}
 
+	@Override
 	public String getUsername() {
 		return username;
 	}
@@ -53,6 +62,7 @@ public class User {
 		this.username = username;
 	}
 
+	@Override
 	public String getPassword() {
 		return password;
 	}
@@ -67,5 +77,19 @@ public class User {
 
 	public void setCreatedAt(LocalDateTime createdAt) {
 		this.createdAt = createdAt;
+	}
+	
+	@Override
+	public boolean isEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	@Override
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return null;
 	}
 }
