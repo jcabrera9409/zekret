@@ -1,0 +1,15 @@
+meta {
+  name: getNamespaceByZRN
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/namespaces/zrn:zekret:namespace:20250715:c65fc33c-0d97-4270-b8ec-91f005f3473f
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}

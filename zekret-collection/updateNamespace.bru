@@ -1,0 +1,22 @@
+meta {
+  name: updateNamespace
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{host}}/namespaces/zrn:zekret:namespace:20250715:c1529d3e-394a-458b-b7bd-93eb14c76b18
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Desarrollo",
+    "description": "Namespaces para credenciales de desarrollo"
+  }
+}

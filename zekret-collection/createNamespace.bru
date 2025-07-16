@@ -1,0 +1,22 @@
+meta {
+  name: createNamespace
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/namespaces
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Desarrollo",
+    "description": "Namespaces para credenciales de desarrollo"
+  }
+}

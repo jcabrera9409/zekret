@@ -1,0 +1,15 @@
+meta {
+  name: getNamespaces
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/namespaces
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
