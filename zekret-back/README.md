@@ -23,7 +23,8 @@ src/main/java/com/zekret/
 │   ├── CORS.java                       # Configuración CORS
 │   └── SecurityConfig.java             # Configuración de seguridad
 ├── controller/
-│   └── UserController.java             # Controlador REST para usuarios
+│   ├── UserController.java             # Controlador REST para usuarios
+│   └── AuthenticationController.java   # Controlador REST para autenticación
 ├── dto/
 │   ├── APIResponseDTO.java             # DTO genérico para respuestas API
 │   └── AuthenticationResponseDTO.java  # DTO para respuestas de autenticación
@@ -154,6 +155,14 @@ src/main/java/com/zekret/
   - Valida email y username únicos
   - Encripta password con BCrypt
   - Retorna APIResponseDTO con usuario creado
+
+#### Autenticación (`/v1/auth`)
+- **POST** `/login`: Autenticación de usuarios
+  - Acepta login con **username** o **email** (campo username)
+  - Valida credenciales contra la base de datos
+  - Genera tokens JWT (access y refresh)
+  - Revoca tokens anteriores del usuario
+  - Retorna APIResponseDTO con AuthenticationResponseDTO
 
 ## Configuración de Base de Datos
 
@@ -310,6 +319,55 @@ FLUSH PRIVILEGES;
   "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "message": "User authenticated successfully"
 }
+```
+
+## Ejemplos de Uso de la API
+
+### Registro de Usuario
+```bash
+curl -X POST http://localhost:8080/v1/users/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "email": "john@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+### Login de Usuario (con username)
+```bash
+curl -X POST http://localhost:8080/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "password": "securePassword123"
+  }'
+```
+
+### Login de Usuario (con email)
+```bash
+curl -X POST http://localhost:8080/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "john@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+### Respuesta de Login Exitoso
+```json
+{
+  "success": true,
+  "message": "User authenticated successfully",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "message": "User authenticated successfully"
+  },
+  "statusCode": 200,
+  "timestamp": "2025-07-15T21:37:08"
+}
+```
 ```
 
 ## Próximas Funcionalidades Identificadas
