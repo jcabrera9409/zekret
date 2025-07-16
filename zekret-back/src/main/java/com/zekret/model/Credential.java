@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -54,10 +55,12 @@ public class Credential {
 
 	@CreationTimestamp
 	@Column(nullable = false, updatable = false)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime createdAt;
 
 	@UpdateTimestamp
 	@Column(nullable = false)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime updatedAt;
 	
 	@ManyToOne
