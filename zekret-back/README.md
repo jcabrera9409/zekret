@@ -25,7 +25,8 @@ src/main/java/com/zekret/
 │   └── SecurityConfig.java             # Configuración de seguridad
 ├── controller/
 │   ├── UserController.java             # Controlador REST para usuarios
-│   └── AuthenticationController.java   # Controlador REST para autenticación
+│   ├── AuthenticationController.java   # Controlador REST para autenticación
+│   └── NamespaceController.java        # Controlador REST para namespaces
 ├── dto/
 │   ├── APIResponseDTO.java             # DTO genérico para respuestas API
 │   └── AuthenticationResponseDTO.java  # DTO para respuestas de autenticación
@@ -241,6 +242,36 @@ public CredentialType save(CredentialType credentialType) {
 - **UserDetailsServiceImpl**: Carga detalles de usuario para Spring Security
 - **JwtAuthenticationFilter**: Filtro para validar tokens en cada request
 
+### Autenticación por Token JWT
+
+#### Obtención del Usuario desde el Header Authorization
+Los endpoints protegidos obtienen el usuario autenticado desde el token JWT en el header:
+
+```java
+// En NamespaceController
+private User getAuthenticatedUserFromToken(String authorizationHeader) {
+    if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        throw new RuntimeException("Invalid or missing Authorization header");
+    }
+    
+    String token = authorizationHeader.substring(7); // Remove "Bearer " prefix
+    String username = jwtService.extractUsername(token);
+    
+    // Search user in database
+    List<User> allUsers = userService.getAll();
+    return allUsers.stream()
+        .filter(user -> user.getUsername().equals(username) || user.getEmail().equals(username))
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("User not found: " + username));
+}
+```
+
+#### Características de Seguridad
+- **Persistent Session:** La sesión persiste entre reinicios del backend via JWT
+- **Header Authorization:** Formato `Authorization: Bearer <token>`
+- **User Filtering:** Todos los recursos se filtran automáticamente por usuario
+- **Relationship Validation:** Verificación explícita de relaciones por ID en servicios
+
 ## API REST
 
 ### Endpoints Disponibles
@@ -258,6 +289,224 @@ public CredentialType save(CredentialType credentialType) {
   - Genera tokens JWT (access y refresh)
   - Revoca tokens anteriores del usuario
   - Retorna APIResponseDTO con AuthenticationResponseDTO
+
+#### Namespaces (`/v1/namespaces`) 🔒
+**Nota**: Todos los endpoints requieren autenticación JWT y filtran automáticamente por usuario.
+
+- **POST** `/register`: Crear un nuevo namespace
+  - Genera ZRN automáticamente
+  - Asigna namespace al usuario autenticado
+  - Establece timestamps de creación
+
+- **PUT** `/{zrn}`: Modificar namespace existente
+  - Solo permite modificar `name` y `description`
+  - Actualiza `updatedAt` automáticamente
+  - Valida pertenencia al usuario autenticado
+
+- **GET** `/{zrn}`: Obtener namespace por ZRN
+  - Busca namespace específico del usuario autenticado
+  - Retorna error 404 si no existe o no pertenece al usuario
+
+- **GET** `/`: Listar todos los namespaces del usuario
+  - Filtra automáticamente por usuario autenticado
+  - Retorna lista completa de namespaces del usuario
+
+- **DELETE** `/{zrn}`: Eliminar namespace físicamente
+  - Eliminación permanente de la base de datos
+  - Valida pertenencia al usuario antes de eliminar
+  - Retorna APIResponseDTO con AuthenticationResponseDTO
+
+### Gestión de Namespaces
+
+**Nota**: Todos los ejemplos de namespace requieren el header de autorización:
+`Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+
+#### Crear Namespace
+```bash
+curl -X POST http://localhost:8080/v1/namespaces/register \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Desarrollo",
+    "description": "Namespaces para credenciales de desarrollo"
+  }'
+```
+
+#### Respuesta de Namespace Creado
+```json
+{
+  "success": true,
+  "message": "Namespace registered successfully",
+  "data": {
+    "name": "Desarrollo",
+    "zrn": "zrn:zekret:namespace:20250715:uuid-here",
+    "description": "Namespaces para credenciales de desarrollo",
+    "createdAt": "2025-07-15T22:15:00",
+    "updatedAt": "2025-07-15T22:15:00"
+  },
+  "statusCode": 201,
+  "timestamp": "2025-07-15T22:15:00"
+}
+```
+
+#### Modificar Namespace
+```bash
+curl -X PUT http://localhost:8080/v1/namespaces/zrn:zekret:namespace:20250715:uuid-here \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "Desarrollo Actualizado",
+    "description": "Descripción actualizada del namespace"
+  }'
+```
+
+#### Obtener Namespace por ZRN
+```bash
+curl -X GET http://localhost:8080/v1/namespaces/zrn:zekret:namespace:20250715:uuid-here \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### Listar Todos los Namespaces
+```bash
+curl -X GET http://localhost:8080/v1/namespaces \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### Eliminar Namespace
+```bash
+curl -X DELETE http://localhost:8080/v1/namespaces/zrn:zekret:namespace:20250715:uuid-here \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### Respuesta de Eliminación Exitosa
+```json
+{
+  "success": true,
+  "message": "Namespace deleted successfully",
+  "data": "Namespace 'zrn:zekret:namespace:20250715:uuid-here' has been permanently deleted",
+  "statusCode": 200,
+  "timestamp": "2025-07-15T22:15:00"
+}
+```
+
+## 🔧 Servicios con Relaciones Explícitas
+
+### NamespaceServiceImpl
+La implementación del servicio maneja explícitamente las relaciones JPA por ID para evitar problemas de cascada:
+
+```java
+@Override
+public Namespace register(Namespace entity) {
+    // Ensure the user relationship is properly set by ID
+    if (entity.getUser() != null && entity.getUser().getId() != null) {
+        Optional<User> user = userRepo.findById(entity.getUser().getId());
+        if (user.isPresent()) {
+            entity.setUser(user.get());
+        } else {
+            throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
+        }
+    }
+    return super.register(entity);
+}
+```
+
+**Ventajas:**
+- Previene errores de entidades transitorias
+- Garantiza la integridad referencial
+- Manejo explícito de relaciones @ManyToOne y @OneToMany
+- Validación de existencia de entidades relacionadas
+
+## 📋 Controladores REST Estándar
+
+### NamespaceController (Optimizado)
+
+**Ruta base:** `/api/v1/namespaces`
+**Autenticación:** Requerida en header `Authorization: Bearer <token>`
+
+**Optimizaciones Implementadas:**
+- ✅ **AuthenticationUtils:** Autenticación genérica reutilizable
+- ✅ **Queries Específicas:** Consultas optimizadas por usuario y ZRN
+- ✅ **Performance Mejorada:** No carga datos innecesarios en memoria
+- ✅ **Escalabilidad:** Performance constante independiente del crecimiento
+
+**Endpoints REST Optimizados:**
+
+#### 1. Crear Namespace
+- **Endpoint:** `POST /api/v1/namespaces`
+- **Descripción:** Crea un nuevo namespace para el usuario autenticado
+- **Body Request:**
+```json
+{
+  "name": "development",
+  "description": "Development environment namespace"
+}
+```
+- **Response:**
+```json
+{
+  "data": {
+    "id": 1,
+    "zrn": "zrn:namespace:development-abc123",
+    "name": "development", 
+    "description": "Development environment namespace",
+    "createdAt": "2025-01-15T10:30:00",
+    "updatedAt": "2025-01-15T10:30:00"
+  },
+  "message": "Namespace created successfully",
+  "success": true,
+  "statusCode": 201
+}
+```
+
+#### 2. Actualizar Namespace
+- **Endpoint:** `PUT /api/v1/namespaces/{zrn}`
+- **Descripción:** Actualiza un namespace existente
+- **Body Request:**
+```json
+{
+  "name": "production",
+  "description": "Production environment namespace"
+}
+```
+
+#### 3. Obtener Namespace por ZRN
+- **Endpoint:** `GET /api/v1/namespaces/{zrn}`
+- **Descripción:** Obtiene un namespace específico por su ZRN
+
+#### 4. Listar Todos los Namespaces
+- **Endpoint:** `GET /api/v1/namespaces`
+- **Descripción:** Obtiene todos los namespaces del usuario autenticado
+- **Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "zrn": "zrn:namespace:development-abc123",
+      "name": "development",
+      "description": "Development environment namespace",
+      "createdAt": "2025-01-15T10:30:00",
+      "updatedAt": "2025-01-15T10:30:00"
+    }
+  ],
+  "message": "Namespaces retrieved successfully",
+  "success": true,
+  "statusCode": 200
+}
+```
+
+#### 5. Eliminar Namespace
+- **Endpoint:** `DELETE /api/v1/namespaces/{zrn}`
+- **Descripción:** Elimina físicamente un namespace del usuario
+- **Response:**
+```json
+{
+  "data": "Namespace 'zrn:namespace:development-abc123' has been permanently deleted",
+  "message": "Namespace deleted successfully",
+  "success": true,
+  "statusCode": 200
+}
+```
 
 ## Configuración de Base de Datos
 
@@ -557,6 +806,7 @@ Basado en la estructura actual, el sistema está preparado para:
    - Tokens de API
    - Archivos secretos
    - Notas seguras
+   - Códigos 2FA
 
 4. **Autenticación Avanzada**:
    - Recuperación de contraseña
@@ -626,3 +876,113 @@ mvn clean install -U  # Forzar actualización de dependencias
 ## Licencia
 
 Este proyecto está bajo la licencia MIT - ver el archivo [LICENSE](../LICENSE) para más detalles.
+
+## 🚀 Optimizaciones de Performance
+
+### AuthenticationUtils - Clase Utilitaria Genérica
+Creada una clase utilitaria reutilizable para autenticación JWT que puede ser utilizada en todos los controladores:
+
+```java
+@Component
+public class AuthenticationUtils {
+    
+    @Autowired
+    private JwtService jwtService;
+    
+    @Autowired
+    private IUserService userService;
+    
+    /**
+     * Extracts and validates the authenticated user from JWT token
+     */
+    public User getAuthenticatedUserFromToken(String authorizationHeader) {
+        // Validation and token extraction logic
+        String token = authorizationHeader.substring(7);
+        String username = jwtService.extractUsername(token);
+        
+        // User lookup and validation
+        return userService.findByUsernameOrEmail(username);
+    }
+}
+```
+
+**Ventajas:**
+- **Reutilizable:** Misma lógica de autenticación en todos los controladores
+- **Centralizada:** Un solo lugar para modificar la lógica de autenticación
+- **Testeable:** Fácil de mockear y probar independientemente
+- **Mantenible:** Cambios en autenticación se propagan automáticamente
+
+### Queries Optimizadas con Spring Data JPA
+Implementación de consultas específicas usando **convenciones de nomenclatura automática** de Spring Data JPA:
+
+```java
+public interface INamespaceRepo extends IGenericRepo<Namespace, Long> {
+    
+    // Spring Data JPA genera automáticamente:
+    // SELECT n FROM Namespace n WHERE n.user.id = :userId
+    List<Namespace> findByUserId(Long userId);
+    
+    // Spring Data JPA genera automáticamente:
+    // SELECT n FROM Namespace n WHERE n.zrn = :zrn AND n.user.id = :userId
+    Optional<Namespace> findByZrnAndUserId(String zrn, Long userId);
+    
+    // Spring Data JPA genera automáticamente:
+    // SELECT COUNT(n) > 0 FROM Namespace n WHERE n.zrn = :zrn AND n.user.id = :userId
+    boolean existsByZrnAndUserId(String zrn, Long userId);
+}
+```
+
+**Ventajas de usar Convenciones JPA:**
+- ✅ **Código más limpio:** No necesita `@Query` ni `@Param`
+- ✅ **Menos propenso a errores:** Spring genera las consultas automáticamente
+- ✅ **Autocompletado:** IDEs pueden ayudar con la nomenclatura
+- ✅ **Mantenimiento:** Cambios en entidades se reflejan automáticamente
+- ✅ **Estándar:** Sigue las convenciones de Spring Data JPA
+```
+
+### Métodos de Servicio Optimizados
+Servicios que utilizan las consultas optimizadas del repository:
+
+```java
+@Override
+public List<Namespace> getNamespacesByUserId(Long userId) {
+    return namespaceRepo.findByUserId(userId);
+}
+
+@Override
+public Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId) {
+    return namespaceRepo.findByZrnAndUserId(zrn, userId);
+}
+```
+
+**Beneficios de Performance:**
+- **Reducción de Memoria:** No carga todos los namespaces en memoria
+- **Queries Específicas:** Solo trae los datos necesarios de la base de datos
+- **Índices Optimizados:** Consultas que aprovechan índices de user_id y zrn
+- **Escalabilidad:** Performance constante independiente del crecimiento de datos
+
+### Comparación de Performance
+
+#### ❌ **Antes (Ineficiente):**
+```java
+// Carga TODOS los namespaces de TODOS los usuarios
+List<Namespace> allNamespaces = namespaceService.getAll(); // SELECT * FROM namespace
+
+// Filtra en memoria Java (costoso)
+List<Namespace> userNamespaces = allNamespaces.stream()
+    .filter(ns -> ns.getUser().getId().equals(authenticatedUser.getId()))
+    .toList();
+```
+
+#### ✅ **Ahora (Optimizado):**
+```java
+// Solo carga namespaces del usuario específico
+List<Namespace> userNamespaces = namespaceService.getNamespacesByUserId(authenticatedUser.getId());
+// SELECT n FROM Namespace n WHERE n.user.id = :userId
+```
+
+**Mejora de Performance:**
+- **Tiempo de consulta:** Reducido de O(n) a O(log n) con índices
+- **Uso de memoria:** Reducido dramáticamente (solo datos del usuario)
+- **Transferencia de red:** Menor cantidad de datos transferidos
+- **Escalabilidad:** Performance no se degrada con crecimiento de usuarios
