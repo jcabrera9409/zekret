@@ -11,6 +11,7 @@ Este proyecto es el backend para una aplicación web que permite a los usuarios 
 - **Maven** para gestión de dependencias
 - **JPA/Hibernate** para ORM
 - **JJWT 0.12.3** para manejo de tokens JWT
+- **Jackson** para serialización JSON con control de acceso
 
 ## Arquitectura del Proyecto
 
@@ -44,6 +45,8 @@ src/main/java/com/zekret/
 ├── security/
 │   ├── JwtAuthenticationFilter.java    # Filtro JWT personalizado
 │   └── CustomLogoutHandler.java        # Manejador de logout
+├── util/
+│   └── ZrnGenerator.java               # Utilidad para generar ZRN únicos
 └── service/
     ├── ICRUD.java                      # Interface CRUD genérica
     ├── IUserService.java
@@ -69,19 +72,23 @@ src/main/java/com/zekret/
 - **Propósito**: Representa a los usuarios del sistema
 - **Implementa**: `UserDetails` (Spring Security)
 - **Campos clave**:
-  - `id`: Long (PK, auto-generated)
+  - `id`: Long (PK, auto-generated) - `@JsonIgnore`
   - `email`: String (único, requerido)
   - `username`: String (requerido)
-  - `password`: String (encriptado con BCrypt)
-  - `createdAt`: LocalDateTime
-  - `enabled`: boolean (para activación de cuenta)
+  - `password`: String (encriptado con BCrypt) - `@JsonProperty(WRITE_ONLY)`
+  - `createdAt`: LocalDateTime - `@JsonProperty(READ_ONLY)`
+  - `enabled`: boolean (para activación de cuenta) - `@JsonIgnore`
+- **Serialización JSON**: 
+  - Password solo se acepta en requests (WRITE_ONLY)
+  - ID y enabled ocultos en respuestas
+  - CreatedAt solo se incluye en respuestas (READ_ONLY)
 
 #### Credential
 - **Propósito**: Almacena las credenciales de los usuarios
 - **Campos clave**:
-  - `id`: Long (PK)
+  - `id`: Long (PK) - `@JsonIgnore`
   - `title`: String (título descriptivo)
-  - `zrn`: String (Zekret Resource Name, único)
+  - `zrn`: String (Zekret Resource Name, único) - `@JsonProperty(READ_ONLY)`
   - `username`: String (opcional)
   - `password`: String (opcional)
   - `sshPrivateKey`: TEXT (opcional)
@@ -91,38 +98,126 @@ src/main/java/com/zekret/
   - `notes`: TEXT (opcional)
 - **Relaciones**:
   - `credentialType`: ManyToOne → CredentialType
-  - `user`: ManyToOne → User
+  - `user`: ManyToOne → User - `@JsonIgnore`
+- **Serialización JSON**:
+  - ID y relación user ocultos en respuestas
+  - ZRN se genera automáticamente (READ_ONLY)
 
 #### CredentialType
 - **Propósito**: Define tipos de credenciales (password, ssh, token, archivo, etc.)
 - **Campos**:
-  - `id`: Long (PK)
-  - `zrn`: String (único)
+  - `id`: Long (PK) - `@JsonIgnore`
+  - `zrn`: String (único, formato slug) - `@JsonProperty(READ_ONLY)`
   - `name`: String
+- **Serialización JSON**:
+  - ID oculto en respuestas
+  - ZRN generado automáticamente como slug (READ_ONLY)
 
 #### Namespace
 - **Propósito**: Agrupa credenciales por categorías/proyectos
 - **Campos**:
-  - `id`: Long (PK)
+  - `id`: Long (PK) - `@JsonIgnore`
   - `name`: String
-  - `zrn`: String
+  - `zrn`: String - `@JsonProperty(READ_ONLY)`
   - `description`: String
-  - `createdAt`, `updatedAt`: LocalDateTime
-- **Relación**: `user`: ManyToOne → User
+  - `createdAt`, `updatedAt`: LocalDateTime - `@JsonProperty(READ_ONLY)`
+- **Relación**: `user`: ManyToOne → User - `@JsonIgnore`
+- **Serialización JSON**:
+  - ID y relación user ocultos
+  - ZRN y timestamps son READ_ONLY (generados automáticamente)
 
 #### Token
 - **Propósito**: Gestiona tokens JWT para autenticación
 - **Campos**:
-  - `id`: Long (PK)
+  - `id`: Long (PK) - `@JsonIgnore`
   - `accessToken`: String (único)
   - `refreshToken`: String (único)
   - `loggedOut`: boolean
-- **Relación**: `user`: ManyToOne → User
+- **Relación**: `user`: ManyToOne → User - `@JsonIgnore`
+- **Serialización JSON**:
+  - ID y relación user ocultos en respuestas
+  - Solo tokens visibles en JSON
 
 ### Concepto ZRN (Zekret Resource Name)
 - Sistema de identificación único similar a ARN de AWS
 - Presente en: Credential, CredentialType, Namespace
 - Permite identificación única de recursos en el sistema
+
+#### Generación de ZRN
+La clase `ZrnGenerator` proporciona métodos para generar ZRN únicos:
+
+**Formatos de ZRN:**
+- **Credential**: `zrn:zekret:credential:20250715:uuid`
+- **Namespace**: `zrn:zekret:namespace:20250715:uuid`  
+- **CredentialType**: `ssh_credential` (formato slug)
+
+**Ejemplos de uso:**
+```java
+// Generar ZRN para credencial
+String credentialZrn = ZrnGenerator.generateCredentialZrn();
+// Resultado: zrn:zekret:credential:20250715:a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+// Generar ZRN para namespace
+String namespaceZrn = ZrnGenerator.generateNamespaceZrn();
+// Resultado: zrn:zekret:namespace:20250715:b2c3d4e5-f6g7-8901-bcde-f23456789012
+
+// Generar ZRN slug para tipo de credencial
+String typeZrn = ZrnGenerator.generateCredentialTypeZrn("SSH Credential");
+// Resultado: ssh_credential
+
+// Validar ZRN
+boolean isValid = ZrnGenerator.isValidZrn("ssh_credential"); // true
+boolean isValid2 = ZrnGenerator.isValidZrn("zrn:zekret:credential:20250715:uuid"); // true
+```
+
+**Ejemplos de tipos de credenciales y sus ZRN slug:**
+- "SSH Credential" → `ssh_credential`
+- "Database Password" → `database_password`
+- "API Token" → `api_token`
+- "Certificate File" → `certificate_file`
+- "Secret Note" → `secret_note`
+- "2FA Code" → `2fa_code`
+
+**Métodos disponibles:**
+- `generateCredentialZrn()`: ZRN completo para credenciales
+- `generateNamespaceZrn()`: ZRN completo para namespaces  
+- `generateCredentialTypeZrn(String name)`: Slug para tipos de credencial
+- `isValidZrn(String zrn)`: Validación de ZRN y slugs
+- `extractResourceType(String zrn)`: Extrae tipo de recurso
+- `generateSlug(String name)`: Convierte nombre a slug
+
+## Integración del ZrnGenerator
+
+### Ejemplo de uso en servicios
+
+```java
+// En CredentialServiceImpl
+@Override
+public Credential save(Credential credential) {
+    if (credential.getZrn() == null || credential.getZrn().isEmpty()) {
+        credential.setZrn(ZrnGenerator.generateCredentialZrn());
+    }
+    return super.save(credential);
+}
+
+// En NamespaceServiceImpl  
+@Override
+public Namespace save(Namespace namespace) {
+    if (namespace.getZrn() == null || namespace.getZrn().isEmpty()) {
+        namespace.setZrn(ZrnGenerator.generateNamespaceZrn());
+    }
+    return super.save(namespace);
+}
+
+// En CredentialTypeServiceImpl
+@Override  
+public CredentialType save(CredentialType credentialType) {
+    if (credentialType.getZrn() == null || credentialType.getZrn().isEmpty()) {
+        credentialType.setZrn(ZrnGenerator.generateCredentialTypeZrn(credentialType.getName()));
+    }
+    return super.save(credentialType);
+}
+```
 
 ## Configuración de Seguridad
 
@@ -368,6 +463,79 @@ curl -X POST http://localhost:8080/v1/auth/login \
   "timestamp": "2025-07-15T21:37:08"
 }
 ```
+
+## Serialización JSON
+
+El proyecto utiliza **Jackson** para la serialización/deserialización JSON con las siguientes configuraciones:
+
+### Anotaciones Utilizadas
+
+#### `@JsonIgnore`
+Campos completamente ocultos en JSON (ni lectura ni escritura):
+- **IDs de entidades**: Para evitar exposición de claves primarias
+- **Relaciones de entidades**: Para prevenir referencias circulares
+- **Campos internos**: Como `enabled` en User
+
+#### `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)`
+Campos que solo se aceptan en requests (no aparecen en responses):
+- **password** en User: Se puede enviar para login/registro pero nunca se devuelve
+
+#### `@JsonProperty(access = JsonProperty.Access.READ_ONLY)`
+Campos que solo aparecen en responses (se ignoran en requests):
+- **ZRN**: Generados automáticamente por el sistema
+- **Timestamps**: createdAt, updatedAt
+- **Campos calculados**: No pueden ser modificados por el cliente
+
+### Beneficios de Seguridad
+
+1. **Protección de passwords**: Nunca se exponen en respuestas JSON
+2. **Ocultación de IDs**: Las claves primarias no son visibles
+3. **Prevención de manipulación**: Campos READ_ONLY no pueden ser alterados
+4. **Referencias limpias**: Las relaciones no causan loops infinitos
+
+### Ejemplos de JSON
+
+**Request de registro/login:**
+```json
+{
+  "username": "johndoe",
+  "email": "john@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Response de usuario registrado:**
+```json
+{
+  "username": "johndoe", 
+  "email": "john@example.com",
+  "createdAt": "2025-07-15T21:30:00"
+}
+```
+
+**Request de creación de credencial:**
+```json
+{
+  "title": "Mi servidor SSH",
+  "username": "root",
+  "sshPrivateKey": "-----BEGIN PRIVATE KEY-----...",
+  "notes": "Servidor de producción"
+}
+```
+
+**Response de credencial creada:**
+```json
+{
+  "title": "Mi servidor SSH",
+  "zrn": "zrn:zekret:credential:20250715:uuid-here",
+  "username": "root",
+  "sshPrivateKey": "-----BEGIN PRIVATE KEY-----...",
+  "notes": "Servidor de producción",
+  "credentialType": {
+    "zrn": "ssh_credential",
+    "name": "SSH Credential"
+  }
+}
 ```
 
 ## Próximas Funcionalidades Identificadas
@@ -403,6 +571,8 @@ Basado en la estructura actual, el sistema está preparado para:
 - ✅ Validación de entrada en controladores
 - ✅ Separación de responsabilidades
 - ✅ Configuración de CORS
+- ✅ Control de serialización JSON (WRITE_ONLY, READ_ONLY)
+- ✅ Ocultación de IDs y relaciones sensibles
 
 ### Arquitectura
 - ✅ Patrón Repository para acceso a datos

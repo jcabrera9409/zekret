@@ -2,6 +2,9 @@ package com.zekret.model;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -17,25 +20,30 @@ public class Namespace {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@JsonIgnore
 	private Long id;
 	
 	@Column(nullable = false)
 	private String name;
 	
 	@Column(nullable = false, unique = true)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private String zrn;
 	
 	@Column(nullable = false)
 	private String description;
 	
 	@Column(nullable = true)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime createdAt;
 	
 	@Column(nullable = true)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime updatedAt;
 	
 	@ManyToOne
 	@JoinColumn(name = "id_user", nullable = true)
+	@JsonIgnore
 	private User user;
 
 	public Long getId() {

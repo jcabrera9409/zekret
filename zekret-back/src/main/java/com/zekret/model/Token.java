@@ -1,5 +1,7 @@
 package com.zekret.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,8 +13,10 @@ import jakarta.persistence.Table;
 @Entity
 @Table(name = "tblToken")
 public class Token {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @JsonIgnore
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -25,6 +29,7 @@ public class Token {
     private boolean loggedOut;
 
     @ManyToOne(optional = false)
+    @JsonIgnore
     private User user;
 
     public Long getId() {

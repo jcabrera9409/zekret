@@ -6,6 +6,9 @@ import java.util.Collection;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -20,6 +23,7 @@ public class User implements UserDetails {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@JsonIgnore
 	private Long id;
 	
 	@Column(nullable = false, unique = true)
@@ -29,12 +33,15 @@ public class User implements UserDetails {
 	private String username;
 	
 	@Column(nullable = false)
+	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private String password;
 	
 	@Column(nullable = true)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	private LocalDateTime createdAt;
 	
 	@Column(nullable = false)
+	@JsonIgnore
 	private boolean enabled = true;
 
 	public Long getId() {
