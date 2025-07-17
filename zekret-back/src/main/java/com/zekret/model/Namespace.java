@@ -1,6 +1,7 @@
 package com.zekret.model;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -8,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -15,6 +17,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
@@ -49,6 +52,10 @@ public class Namespace {
 	@JoinColumn(name = "id_user", nullable = true)
 	@JsonIgnore
 	private User user;
+
+	@OneToMany(mappedBy = "namespace", cascade = {CascadeType.ALL}, orphanRemoval = true)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	private List<Credential> credentials;
 
 	public Long getId() {
 		return id;
@@ -104,6 +111,14 @@ public class Namespace {
 
 	public void setUser(User user) {
 		this.user = user;
+	}
+
+	public List<Credential> getCredentials() {
+		return credentials;
+	}
+
+	public void setCredentials(List<Credential> credentials) {
+		this.credentials = credentials;
 	}
 	
 }

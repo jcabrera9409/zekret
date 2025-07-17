@@ -69,6 +69,7 @@ public class Credential {
 	
 	@ManyToOne
 	@JoinColumn(name = "id_namespace", nullable = true)
+	@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
 	private Namespace namespace;
 	
 	@ManyToOne

@@ -109,13 +109,14 @@ src/main/java/com/zekret/
   - `updatedAt`: LocalDateTime - `@UpdateTimestamp`
 - **Relaciones**:
   - `credentialType`: ManyToOne → CredentialType (read/write en JSON)
-  - `namespace`: ManyToOne → Namespace (read/write en JSON)
+  - `namespace`: ManyToOne → Namespace (**WRITE_ONLY** en JSON)
   - `user`: ManyToOne → User - `@JsonIgnore`
 - **Serialización JSON**:
   - ID y relación user ocultos en respuestas
   - ZRN se genera automáticamente (READ_ONLY)
   - **createdAt y updatedAt**: Incluidos en respuestas JSON (timestamps automáticos)
-  - **credentialType y namespace**: Visibles en requests y responses para permitir asignación por ZRN
+  - **credentialType**: Visible en requests y responses para permitir asignación por ZRN
+  - **namespace**: Solo acepta datos en requests (WRITE_ONLY), no se incluye en responses para evitar referencia circular
 - **Timestamps Automáticos**:
   - `createdAt`: Se establece automáticamente al crear la entidad (no actualizable)
   - `updatedAt`: Se actualiza automáticamente en cada modificación
@@ -145,10 +146,16 @@ src/main/java/com/zekret/
   - `description`: String
   - `createdAt`: LocalDateTime - `@CreationTimestamp` + `@JsonProperty(READ_ONLY)`
   - `updatedAt`: LocalDateTime - `@UpdateTimestamp` + `@JsonProperty(READ_ONLY)`
-- **Relación**: `user`: ManyToOne → User - `@JsonIgnore`
+- **Relaciones**: 
+  - `user`: ManyToOne → User - `@JsonIgnore`
+  - `credentials`: OneToMany → Credential - `@JsonProperty(READ_ONLY)`
+- **Configuración de Cascada**:
+  - `cascade = {CascadeType.ALL}` - Todas las operaciones se propagan a credenciales
+  - `orphanRemoval = true` - Credenciales huérfanas se eliminan automáticamente
 - **Serialización JSON**:
   - ID y relación user ocultos
   - **ZRN completamente accesible** para permitir asignación desde frontend
+  - **credentials**: Lista de credenciales incluida en responses (READ_ONLY) para mostrar estadísticas
   - Timestamps son READ_ONLY (generados automáticamente por Hibernate)
 - **Timestamps Automáticos**:
   - `createdAt`: Se establece automáticamente al crear la entidad (no actualizable)
@@ -1348,7 +1355,7 @@ Cada credencial está asignada a un namespace específico:
 public class Credential {
     @ManyToOne
     @JoinColumn(name = "id_namespace", nullable = true)
-    @JsonIgnore
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private Namespace namespace;
     
     // ...otros campos
@@ -1363,169 +1370,62 @@ public class Credential {
 - ✅ **Credential Type Mutable:** El tipo de credencial puede actualizarse en updates
 - ✅ **Filtrado Automático:** Todas las consultas filtran por usuario automáticamente
 
-## 🔧 Controladores Refactorizados (Julio 2025)
+---
 
-### UserController (Optimizado)
+## 🔄 **Mejoras Recientes Implementadas**
 
-**Ruta base:** `/v1/users`
-**Autenticación:** NO requerida para registro
+### Optimización de Relaciones y Serialización JSON
 
-**Características Clave:**
-- ✅ **Manejo de Errores Robusto:** Try-catch estructurado con códigos HTTP específicos
-- ✅ **Validación de Usuario Existente:** Retorna `CONFLICT (409)` si usuario ya existe
-- ✅ **Logging Detallado:** Logs de inicio, éxito, advertencia y error
-- ✅ **Timestamps Automáticos:** User model maneja `createdAt` y `updatedAt` automáticamente
-- ✅ **Encriptación BCrypt:** Password encriptado antes de guardar
-- ✅ **Documentación JavaDoc:** Métodos completamente documentados
-
-**Endpoints:**
-
-#### 1. Registrar Usuario
-- **Endpoint:** `POST /v1/users/register`
-- **Descripción:** Registra un nuevo usuario en el sistema
-- **Body Request:**
-```json
-{
-  "username": "johndoe",
-  "email": "john@example.com",
-  "password": "securePassword123"
-}
-```
-- **Response Exitosa (201):**
-```json
-{
-  "success": true,
-  "message": "User registered successfully",
-  "data": {
-    "username": "johndoe",
-    "email": "john@example.com",
-    "createdAt": "2025-07-15T19:30:45.123456",
-    "updatedAt": "2025-07-15T19:30:45.123456"
-  },
-  "statusCode": 201,
-  "timestamp": "2025-07-15T19:30:45"
-}
-```
-- **Response Usuario Existente (409):**
-```json
-{
-  "success": false,
-  "message": "User with this email or username already exists",
-  "data": null,
-  "statusCode": 409,
-  "timestamp": "2025-07-15T19:30:45"
-}
-```
-
-### AuthenticationController (Optimizado)
-
-**Ruta base:** `/v1/auth`
-**Autenticación:** NO requerida para login
-
-**Características Clave:**
-- ✅ **Autenticación Flexible:** Acepta username O email en el campo `username`
-- ✅ **Gestión de Tokens JWT:** Genera access y refresh tokens
-- ✅ **Revocación Automática:** Revoca tokens anteriores al hacer login
-- ✅ **Manejo de Errores Detallado:** Diferentes respuestas según el tipo de error
-- ✅ **Logging de Seguridad:** Rastrea intentos de login y resultados
-- ✅ **Validación de Cuenta:** Verifica que la cuenta esté habilitada
-
-**Endpoints:**
-
-#### 1. Autenticar Usuario
-- **Endpoint:** `POST /v1/auth/login`
-- **Descripción:** Autentica usuario y genera tokens JWT
-- **Body Request (con username):**
-```json
-{
-  "username": "johndoe",
-  "password": "securePassword123"
-}
-```
-- **Body Request (con email):**
-```json
-{
-  "username": "john@example.com",
-  "password": "securePassword123"
-}
-```
-- **Response Exitosa (200):**
-```json
-{
-  "success": true,
-  "message": "User authenticated successfully",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "message": "User authenticated successfully"
-  },
-  "statusCode": 200,
-  "timestamp": "2025-07-15T19:30:45"
-}
-```
-- **Response Credenciales Inválidas (401):**
-```json
-{
-  "success": false,
-  "message": "Authentication failed. Please check your credentials.",
-  "data": null,
-  "statusCode": 401,
-  "timestamp": "2025-07-15T19:30:45"
-}
-```
-- **Response Cuenta Deshabilitada (401):**
-```json
-{
-  "success": false,
-  "message": "Your account is not enabled. Please contact support.",
-  "data": null,
-  "statusCode": 401,
-  "timestamp": "2025-07-15T19:30:45"
-}
-```
-
-### Repositorios Optimizados
-
-#### IUserRepo
-Consultas específicas para gestión de usuarios y autenticación:
+#### 1. **Relación OneToMany en Namespace**
+- **Agregado**: Relación `@OneToMany` de `Namespace` hacia `Credential`
+- **Configuración**: `cascade = {CascadeType.ALL}, orphanRemoval = true`
+- **Propósito**: Acceso directo a credenciales desde namespace para estadísticas
+- **Impacto**: Permite obtener el conteo de credenciales automáticamente
 
 ```java
-public interface IUserRepo extends IGenericRepo<User, Long> {
-    
-    // Buscar usuario por email O username (flexible para login)
-    Optional<User> findByEmailOrUsername(String email, String username);
-    
-    // Actualizar password de usuario por ID (para cambio de contraseña)
-    @Transactional
-    @Modifying
-    @Query("UPDATE User u SET u.password = :password WHERE u.id = :id")
-    int updatePasswordById(@Param("id") Long id, @Param("password") String password);
-}
+@OneToMany(mappedBy = "namespace", cascade = {CascadeType.ALL}, orphanRemoval = true)
+@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+private List<Credential> credentials;
 ```
 
-#### ITokenRepo
-Gestión avanzada de tokens JWT con estado de sesión:
+#### 2. **Optimización de Serialización JSON**
+- **Modificado**: Campo `namespace` en `Credential` ahora es `WRITE_ONLY`
+- **Beneficio**: Evita referencias circulares en respuestas JSON
+- **Resultado**: Mejora del rendimiento y estructura de datos más limpia
 
 ```java
-public interface ITokenRepo extends IGenericRepo<Token, Long> {
-    
-    // Paginación de tokens para administración
-    Page<Token> findAll(Pageable pageable);
-    
-    // Buscar token por access token para validación
-    Optional<Token> findByAccessToken(String accessToken);
-    
-    // Buscar token por refresh token para renovación
-    Optional<Token> findByRefreshToken(String refreshToken);
-    
-    // Obtener tokens activos de un usuario (para revocación)
-    List<Token> findByUserIdAndLoggedOutFalse(Long userId);
-}
+@ManyToOne
+@JoinColumn(name = "id_namespace", nullable = true)
+@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+private Namespace namespace;
 ```
 
-**Funcionalidades de Token:**
-- ✅ **Revocación Automática:** Al hacer login se revocan tokens anteriores
-- ✅ **Validación por Access Token:** Para autenticación en cada request
-- ✅ **Renovación por Refresh Token:** Para extender sesión sin re-login
-- ✅ **Estado de Sesión:** Campo `loggedOut` para invalidar tokens
-- ✅ **Filtrado por Usuario:** Tokens específicos por usuario ID
+### Impacto en la Arquitectura
+
+#### **Gestión de Cascadas**
+- Las operaciones en `Namespace` se propagan automáticamente a sus `Credential`
+- Eliminación segura: credenciales huérfanas se eliminan automáticamente
+- Consistencia de datos garantizada a nivel de JPA
+
+#### **API Response Optimization**
+- **Namespace responses**: Incluyen lista de credenciales para conteo
+- **Credential responses**: Ya no incluyen namespace completo (evita ciclos)
+- **Frontend benefits**: Datos estructurados optimizados para UI
+
+### Estado Actual de Integración
+
+✅ **Completado**:
+- Relaciones bidireccionales optimizadas
+- Eliminación de referencias circulares JSON
+- Cascadas automáticas configuradas
+- Serialización eficiente implementada
+
+📋 **Beneficios Obtenidos**:
+- Mejor rendimiento en respuestas API
+- Estructura de datos más consistente
+- Eliminación automática de datos huérfanos
+- Integración frontend simplificada
+
+---
+
+*Documentación actualizada: Enero 2025*
