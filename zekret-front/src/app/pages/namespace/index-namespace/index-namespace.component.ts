@@ -1,7 +1,10 @@
-import { Component, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { NamespaceEditionDialogComponent } from '../../../modals/namespace-edition-dialog/namespace-edition-dialog.component';
+import { NamespaceService } from '../../../_service/namespace.service';
+import { Namespace } from '../../../_model/namespace';
+import { Message } from '../../../_model/message';
 
 
 @Component({
@@ -11,29 +14,38 @@ import { NamespaceEditionDialogComponent } from '../../../modals/namespace-editi
   templateUrl: './index-namespace.component.html',
   styleUrl: './index-namespace.component.css'
 })
-export class IndexNamespaceComponent {
+export class IndexNamespaceComponent implements OnInit {
   @Output() namespaceSelected = new EventEmitter<string>();
 
-  constructor(public dialog: MatDialog){}
+  namespaces: Namespace[] = [];
 
-  // Datos de ejemplo - después puedes reemplazar con datos reales de un servicio
-  namespaces = [
-    {
-      name: 'Desarrollo',
-      description: 'Credenciales para el entorno de desarrollo',
-      credentialsCount: 5
-    },
-    {
-      name: 'Producción',
-      description: 'Credenciales para el entorno de producción',
-      credentialsCount: 12
-    },
-    {
-      name: 'Testing',
-      description: 'Credenciales para el entorno de testing',
-      credentialsCount: 3
-    }
-  ];
+  constructor(
+    private namespaceService: NamespaceService,
+    private dialog: MatDialog
+  ){}
+
+  ngOnInit(): void {
+    this.getAllNamespaces();
+  }
+
+  getAllNamespaces() {
+    this.namespaceService.getAll().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.namespaces = response.data;
+          this.namespaceService.setChangeObject(this.namespaces);
+          console.log('Namespaces loaded successfully:', this.namespaces);
+        } else {
+          this.namespaceService.setChangeObject([]);
+          console.error('Failed to load namespaces:', response.message);
+        }
+      }
+      , error: (error) => {
+        this.namespaceService.setChangeObject([]);
+        console.error('Error fetching namespaces:', error);
+      }
+    });
+  }
 
   onNamespaceClick(namespaceName: string) {
     this.namespaceSelected.emit(namespaceName);

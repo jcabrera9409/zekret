@@ -25,7 +25,7 @@
         </div>
         <p class="text-gray-600 text-sm mb-4">{{ namespace.description }}</p>
         <div class="flex justify-between items-center">
-            <span class="text-sm text-gray-500">{{ namespace.credentialsCount }} credenciales</span>
+            <span class="text-sm text-gray-500">{{namespace.credentials.length}} credenciales</span>
             <button type="button" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium view-credentials-btn" (click)="onNamespaceClick(namespace.name)">
                 Ver credenciales →
             </button>

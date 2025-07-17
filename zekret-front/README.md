@@ -38,11 +38,15 @@ src/
 │   │   ├── credential.ts # Modelo de credenciales
 │   │   ├── namespace.ts  # Modelo de namespaces
 │   │   ├── dto.ts        # DTOs para API responses
+│   │   ├── message.ts    # Modelo para notificaciones
 │   │   └── credential-type.ts # Tipos de credenciales
 │   ├── _service/         # Servicios de la aplicación
-│   │   ├── auth.service.ts     # Autenticación
-│   │   ├── user.service.ts     # Gestión de usuarios
-│   │   └── generic.service.ts  # Servicio genérico CRUD
+│   │   ├── auth.service.ts       # Autenticación
+│   │   ├── user.service.ts       # Gestión de usuarios
+│   │   ├── namespace.service.ts  # Gestión de namespaces
+│   │   ├── credential.service.ts # Gestión de credenciales
+│   │   ├── guard.service.ts      # Guards de autenticación
+│   │   └── generic.service.ts    # Servicio genérico CRUD
 │   ├── util/             # Utilidades y helpers
 │   │   └── util.ts       # JWT utilities y métodos helper
 │   ├── modals/           # Componentes de diálogos/modales
@@ -67,8 +71,21 @@ src/
 ### JWT Implementation
 - **JWT Helper**: @auth0/angular-jwt para manejo de tokens
 - **Token Storage**: LocalStorage con configuración de dominio
-- **Interceptors**: Configuración automática para requests autenticados
+- **Auth Guards**: Función `authGuard` para protección de rutas
 - **Token Validation**: Métodos utilitarios para validación y extracción de datos
+
+### Guard de Autenticación
+```typescript
+// guard.service.ts - Función guard moderna
+export const authGuard = (): Observable<boolean> | boolean => {
+  const authService = inject(AuthService);
+  if (!authService.isLogged() || UtilMethods.isTokenExpired()) {
+    authService.logout();
+    return false;
+  }
+  return true;
+}
+```
 
 ### Configuración de Seguridad
 ```typescript
@@ -80,6 +97,8 @@ src/
   disallowedRoutes: [...]
 }
 ```
+
+**Nota**: Environment de producción configurado pero requiere completar `apiUrl` y `domains`.
 
 ## 🎯 Funcionalidades Principales
 
@@ -101,14 +120,17 @@ src/
 
 ### 3. Gestión de Namespaces
 - **Componente principal**: `NamespaceComponent`
-- **Modelo**: `Namespace` con ZRN, nombre, descripción y timestamps
+- **Servicio**: `NamespaceService` (extiende GenericService) - **IMPLEMENTADO**
+- **Modelo**: `Namespace` con ZRN, nombre, descripción, timestamps y array de credenciales
+- **Integración**: API REST completa con endpoint `/v1/namespaces`
 - **Subcomponentes**:
-  - `IndexNamespaceComponent`: Lista y gestión de namespaces
+  - `IndexNamespaceComponent`: Lista y gestión de namespaces con datos reales
   - `StatsNamespaceComponent`: Estadísticas de namespaces
   - `CredentialsComponent`: Gestión de credenciales por namespace
 
 ### 4. Gestión de Credenciales
 - **Modelo**: `Credential` con soporte para múltiples tipos
+- **Servicio**: `CredentialService` - **CREADO PERO VACÍO**
 - **Tipos de credenciales soportados**:
   - Username/Password
   - SSH Private Key
@@ -122,22 +144,31 @@ src/
   - `CredentialEditionDialogComponent`: Edición de credenciales
   - `CredentialDetailDialogComponent`: Visualización de detalles
 
-### 5. Sistema de Servicios
-- **GenericService**: Servicio base con operaciones CRUD
+### 5. Sistema de Servicios Reactivos
+- **GenericService**: Servicio base con operaciones CRUD y notificaciones reactivas
   - `getAll()`: Obtener todos los recursos
   - `getByZrn(zrn)`: Obtener por identificador ZRN
   - `register(entity)`: Crear nuevo recurso
   - `modify(entity)`: Actualizar recurso
   - `delete(id)`: Eliminar recurso
-- **Especialización**: UserService extiende GenericService para funcionalidades específicas
+  - **Observables de cambio**: `objectChange` y `messageChange` para comunicación reactiva
+- **Servicios Implementados**:
+  - `UserService`: Extiende GenericService para usuarios
+  - `NamespaceService`: Implementación completa para namespaces
+  - `CredentialService`: Creado pero pendiente de implementación
 
 ### 6. Sistema de DTOs y Modelos
 - **APIResponseDTO**: Estructura estándar para respuestas de API
 - **AuthenticationResponseDTO**: Tokens de acceso y refresh
 - **CredentialTypeDTO**: Definición de tipos de credenciales
+- **Message**: Modelo para notificaciones con status, mensaje y error
 - **Modelos de Entidad**: User, Credential, Namespace con propiedades completas
 
-### 7. Utilidades JWT
+### 7. Sistema de Guards y Protección de Rutas
+- **authGuard**: Función guard moderna usando Angular 17+ syntax
+- **Validaciones**: Token existence y expiración automática
+- **Redirección**: Logout automático en caso de token inválido
+- **Integración**: Protege rutas principales con `canActivate: [authGuard]`
 - **UtilMethods**: Clase con métodos estáticos para:
   - Gestión de tokens JWT
   - Extracción de campos del token
@@ -253,6 +284,22 @@ export class Namespace {
     description: string;
     createdAt: Date;
     updatedAt: Date;
+    credentials: Credential[];  // Array de credenciales asociadas
+}
+```
+
+### Message
+```typescript
+export class Message {
+    status: string;
+    message: string;
+    error: any;
+
+    constructor(status: string, message: string, error?: any) {
+        this.status = status;
+        this.message = message;
+        this.error = error;
+    }
 }
 ```
 
@@ -277,22 +324,23 @@ export interface AuthenticationResponseDTO {
 
 ### Componentes Implementados
 - ✅ Sistema de autenticación completo con JWT
+- ✅ Auth Guards implementados y funcionando
 - ✅ Login y registro de usuarios
 - ✅ Layout principal con header
-- ✅ Gestión básica de namespaces
-- ✅ Listado y selección de credenciales
-- ✅ Diálogos para edición de credenciales
-- ✅ Servicios para integración con backend
-- ✅ Modelos de datos completos
+- ✅ NamespaceService completamente implementado
+- ✅ Gestión real de namespaces con API integration
+- ✅ Listado dinámico con conteo de credenciales
+- ✅ Sistema de notificaciones reactivas
+- ✅ Modelos de datos sincronizados con backend
 - ✅ Utilidades para manejo de JWT
-- ✅ Configuración de interceptors HTTP
+- ✅ Configuración de interceptors HTTP (JWT)
 
 ### Funcionalidades Pendientes
-- 🔲 Implementación completa de diálogos modales
+- 🔲 Implementación de CredentialService (actualmente vacío)
+- 🔲 Interceptor de errores HTTP personalizado
+- 🔲 Completar environment de producción
 - 🔲 Validaciones avanzadas de formularios
-- 🔲 Manejo de errores HTTP más robusto
 - 🔲 Implementación de refresh token
-- 🔲 Guards de rutas para protección
 - 🔲 Tests unitarios e integración
 - 🔲 Internacionalización (i18n)
 - 🔲 Optimización de rendimiento
@@ -301,6 +349,11 @@ export interface AuthenticationResponseDTO {
 ### API Integration Status
 - ✅ AuthService integrado con backend
 - ✅ UserService con operaciones CRUD
+- ✅ NamespaceService completamente funcional
+- ✅ GenericService con sistema reactivo de notificaciones
+- ✅ Guards de autenticación protegiendo rutas
+- 🔲 CredentialService pendiente de implementación
+- 🔲 Error handling y retry mechanisms
 - ✅ GenericService como base reutilizable
 - ✅ Configuración de environment para diferentes entornos
 - 🔲 NamespaceService implementation
@@ -365,3 +418,84 @@ export interface AuthenticationResponseDTO {
 ---
 
 *Este README refleja el estado actual del proyecto y será actualizado conforme evolucione el desarrollo.*
+
+---
+
+## 🔄 **Actualizaciones Recientes Implementadas**
+
+### Servicios y Arquitectura Completada
+
+#### 1. **NamespaceService Totalmente Implementado**
+- **Extendido**: `GenericService<Namespace>` con funcionalidad completa
+- **Endpoint**: Configurado para `/v1/namespaces`
+- **Integración**: Componente `IndexNamespaceComponent` usando datos reales del API
+- **Eliminado**: Mock data reemplazado por llamadas HTTP reales
+
+#### 2. **Sistema de Guards Funcional**
+- **Implementado**: `authGuard` como función guard moderna
+- **Funcionalidad**: Validación de token y redirección automática
+- **Integración**: Protege rutas principales con `canActivate: [authGuard]`
+- **Métodos**: `isLogged()` y `logout()` con manejo de errores
+
+#### 3. **GenericService con Notificaciones Reactivas**
+- **Agregado**: `Subject<T[]>` para `objectChange`
+- **Agregado**: `Subject<Message>` para `messageChange`
+- **Propósito**: Comunicación reactiva entre componentes
+- **Beneficio**: Actualizaciones automáticas en UI
+
+#### 4. **Modelo Message para Notificaciones**
+- **Nuevo archivo**: `message.ts` para manejo uniforme de notificaciones
+- **Estructura**: `status`, `message`, `error` con constructor opcional
+- **Uso**: Integrado en GenericService para comunicación de estados
+
+### Mejoras en Modelos de Datos
+
+#### 5. **Namespace con Array de Credenciales**
+- **Agregado**: Campo `credentials: Credential[]`
+- **Sincronización**: Alineado con backend OneToMany relationship
+- **UI Impact**: Conteo dinámico de credenciales en tarjetas de namespace
+
+#### 6. **AuthService Mejorado**
+- **Métodos renombrados**: `estaLogueado()` → `isLogged()`
+- **Logout mejorado**: Manejo de errores HTTP con fallback
+- **Consistencia**: Mejor alineación con convenciones anglófonas
+
+### Estado de Servicios
+
+#### ✅ **Servicios Implementados:**
+- `AuthService`: Completo con JWT integration
+- `UserService`: Extiende GenericService
+- `NamespaceService`: Implementación completa
+- `GenericService`: Base reactiva con observables
+
+#### 🔲 **Servicios Pendientes:**
+- `CredentialService`: Creado pero sin implementación
+- HTTP Error Interceptor
+- Notification Service UI
+
+### Environment Configuration
+
+#### 🔄 **Estado Actual:**
+- **Development**: Completamente configurado
+- **Production**: Estructura creada, requiere completar `apiUrl` y `domains`
+
+### Arquitectura Moderna Angular 17
+
+#### **Características Implementadas:**
+- Standalone Components en toda la aplicación
+- Function Guards (`authGuard`) en lugar de class-based
+- Reactive Forms con validaciones
+- Observable patterns para state management
+- Modern dependency injection con `inject()`
+
+### Integración Frontend-Backend
+
+#### **Sincronización Completada:**
+- Modelos de datos alineados con entidades JPA
+- Respuestas API estructuradas con `APIResponseDTO<T>`
+- JWT authentication end-to-end funcional
+- Cascade relationships reflejadas en frontend
+
+---
+
+*Documentación actualizada: Enero 2025*

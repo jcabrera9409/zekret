@@ -4,4 +4,5 @@ export class Namespace {
     description: string;
     createdAt: Date;
     updatedAt: Date;
+    credentials: Credential[];
 }
