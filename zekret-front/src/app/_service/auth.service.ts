@@ -27,12 +27,12 @@ export class AuthService {
     return this.http.post<APIResponseDTO<AuthenticationResponseDTO>>(`${this.url}/login`, user);
   }
 
-  estaLogueado() {
+  isLogged() {
     let token = UtilMethods.getJwtToken();
     return token != null;
   }
 
-  cerrarSesion() {
+  logout() {
     this.http.get(`${environment.apiUrl}/logout`).subscribe({
       next: () => {
         localStorage.clear();
