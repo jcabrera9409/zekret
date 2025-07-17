@@ -33,9 +33,16 @@ export class AuthService {
   }
 
   cerrarSesion() {
-    this.http.get(`${environment.apiUrl}/logout`).subscribe(() => {
-      localStorage.clear();
-      this.router.navigate(['login']);
-    });
+    this.http.get(`${environment.apiUrl}/logout`).subscribe({
+      next: () => {
+        localStorage.clear();
+        this.router.navigate(['login']);
+      },
+      error: (error) => {
+        console.error('Error during logout:', error);
+        localStorage.clear();
+        this.router.navigate(['login']);
+      }
+    })
   }
 }

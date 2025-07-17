@@ -25,6 +25,13 @@ export class UtilMethods {
         }
     }
 
+    public static isTokenExpired(): boolean {
+        const helper = this.getHelper();
+        let token = this.getJwtToken();
+
+        return helper.isTokenExpired(token);
+    }
+
     private static getDecodedJwtToken(): any {
         let token = this.getJwtToken();
         return this.extractJwtPayload(token);
