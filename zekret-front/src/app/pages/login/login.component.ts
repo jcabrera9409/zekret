@@ -2,6 +2,8 @@ import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { AuthService } from '../../_service/auth.service';
+import { UtilMethods } from '../../util/util';
 
 @Component({
   selector: 'app-login',
@@ -22,17 +24,18 @@ export class LoginComponent {
   validationMessage: string = '';
 
   constructor(
+    private authService: AuthService,
     private router: Router,
   ) {
     this.loginForm = new FormGroup({
       email: new FormControl('', [Validators.required]),
-      password: new FormControl('', Validators.required)
+      password: new FormControl('', [Validators.required, Validators.minLength(6)])
     });
 
     this.registerForm = new FormGroup({
       email: new FormControl('', [Validators.required, Validators.email]),
       username: new FormControl('', Validators.required),
-      password: new FormControl('', Validators.required)
+      password: new FormControl('', [Validators.required, Validators.minLength(6)])
     });
   }
 
@@ -40,12 +43,22 @@ export class LoginComponent {
     if (this.isLoginMode) {
       if (this.loginForm.valid) {
         this.isLoading = true;
-        console.log('Logging in with', this.loginForm.value);
-        setTimeout(() => {
-          this.isLoading = false;
-          console.log('Login successful');
-          this.router.navigate(['/', this.loginForm.value.email]);
-        }, 2000);
+        const email = this.loginForm.value.email;
+        const password = this.loginForm.value.password;
+        this.authService.login(email, password).subscribe({
+          next: (response) => {
+            this.isLoading = false;
+            UtilMethods.setJwtToken(response.data.access_token);
+            this.router.navigate([UtilMethods.getUsernameFieldJwtToken()]);
+          },
+          error: (error) => {
+            this.isLoading = false;
+            this.validationError = true;
+            this.validationMessage = 'Credenciales incorrectas. Por favor, intente de nuevo.';
+            console.error('Login error', error);
+          }
+        });
+
       } else {
         this.validationError = true;
         this.validationMessage = 'Por favor, complete todos los campos requeridos correctamente.';
