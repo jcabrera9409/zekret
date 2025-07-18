@@ -1,0 +1,10 @@
+data-initializer:
+  credentialType:
+    - zrn: username_password
+      name: Username/Password
+    - zrn: ssh_username
+      name: SSH Username
+    - zrn: secret_text
+      name: Secret Text
+    - zrn: file
+      name: File
