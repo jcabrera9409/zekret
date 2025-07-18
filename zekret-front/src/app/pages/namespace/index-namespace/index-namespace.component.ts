@@ -57,7 +57,6 @@ export class IndexNamespaceComponent implements OnInit {
   }
 
   onNamespaceClick(namespace: Namespace) {
-    console.log('Namespace clicked:', namespace);
     this.namespaceSelected.emit(namespace);
   }
 

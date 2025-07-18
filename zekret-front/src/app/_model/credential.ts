@@ -8,6 +8,7 @@ export class Credential {
     password: string;
     sshPrivateKey: string;
     secretText: string;
+    fileName: string;
     fileContent: string;
     notes: string;
     createdAt: Date;

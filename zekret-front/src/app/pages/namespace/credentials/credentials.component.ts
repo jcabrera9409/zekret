@@ -36,10 +36,10 @@ export class CredentialsComponent implements OnChanges {
     });
   }
 
-  onCredentialClick(credential: any) {
+  onCredentialClick(credential: Credential) {
     this.dialog.open(CredentialDetailDialogComponent, {
       width: '800px',
-      data: { credential, namespace: this.selectedNamespace }
+      data: credential
     });
   }
 
