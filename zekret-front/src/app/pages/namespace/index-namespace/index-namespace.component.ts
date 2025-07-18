@@ -6,6 +6,7 @@ import { ConfirmDeleteDialogComponent } from '../../../modals/confirm-delete-dia
 import { NamespaceService } from '../../../_service/namespace.service';
 import { Namespace } from '../../../_model/namespace';
 import { ConfirmDeleteDataDTO } from '../../../_model/dto';
+import { CredentialService } from '../../../_service/credential.service';
 
 
 @Component({
@@ -21,8 +22,9 @@ export class IndexNamespaceComponent implements OnInit {
   namespaces: Namespace[] = [];
 
   constructor(
+    private dialog: MatDialog,
     private namespaceService: NamespaceService,
-    private dialog: MatDialog
+    private credentialService: CredentialService
   ){}
 
   ngOnInit(): void {
@@ -34,6 +36,23 @@ export class IndexNamespaceComponent implements OnInit {
       }
       , error: (error) => {
         console.error('Error updating namespaces:', error);
+      }
+    });
+
+    this.credentialService.getChangeObject().subscribe({
+      next: () => {
+        this.getAllNamespaces(); 
+      }, error: (error) => {
+        console.error('Error updating credentials:', error);
+      }
+    });
+
+    this.credentialService.getChangeObjectDelete().subscribe({
+      next: () => {
+        this.getAllNamespaces();
+      }
+      , error: (error) => {
+        console.error('Error deleting credential:', error);
       }
     });
   }
@@ -87,7 +106,7 @@ export class IndexNamespaceComponent implements OnInit {
     });
   }
 
-  confirmDeleteNamespace(namespace: Namespace) {
+  private confirmDeleteNamespace(namespace: Namespace) {
     this.namespaceService.deleteByZrn(namespace.zrn).subscribe({
       next: (response) => {
         if (response.success) {

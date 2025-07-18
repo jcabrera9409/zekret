@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { NamespaceService } from '../../_service/namespace.service';
+import { CredentialService } from '../../_service/credential.service';
 
 @Component({
   selector: 'app-stats-namespace',
@@ -14,7 +15,8 @@ export class StatsNamespaceComponent {
   totalCredentials: number = 0;
 
   constructor(
-    private namespaceService: NamespaceService
+    private namespaceService: NamespaceService,
+    private credentialService: CredentialService
   ) { }
 
   ngOnInit(): void {

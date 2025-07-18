@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Credential } from '../../_model/credential';
 import { CommonModule } from '@angular/common';
 
@@ -18,6 +18,7 @@ export class CredentialDetailDialogComponent {
   isFile: boolean = false;
 
   constructor(
+    private dialogRef: MatDialogRef<CredentialDetailDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public credential: Credential
   ) {
     this.setCredentialType();
@@ -29,6 +30,10 @@ export class CredentialDetailDialogComponent {
     }).catch(err => {
       console.error('Error al copiar al portapapeles:', err);
     });
+  }
+
+  closeDialog() {
+    this.dialogRef.close();
   }
 
   private setCredentialType() {

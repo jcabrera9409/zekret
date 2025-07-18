@@ -1,6 +1,8 @@
-export const credentialType: {key: string, name: string}[] = [
-    { key: 'username_password', name: 'Username/Password' },
-    { key: 'ssh_username', name: 'SSH Username' },
-    { key: 'secret_text', name: 'Secret Text' },
-    { key: 'file', name: 'File' }
+import { CredentialTypeDTO } from "./dto";
+
+export const credentialType: CredentialTypeDTO[] = [
+    { zrn: 'username_password', name: 'Username/Password' },
+    { zrn: 'ssh_username', name: 'SSH Username' },
+    { zrn: 'secret_text', name: 'Secret Text' },
+    { zrn: 'file', name: 'File' }
 ]
