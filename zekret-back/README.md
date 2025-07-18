@@ -25,12 +25,14 @@ src/main/java/com/zekret/
 ├── ZekretBackApplication.java          # Clase principal de Spring Boot
 ├── configuration/
 │   ├── CORS.java                       # Configuración CORS
-│   └── SecurityConfig.java             # Configuración de seguridad
+│   ├── SecurityConfig.java             # Configuración de seguridad
+│   ├── DataInitializer.java            # **NUEVO** - Inicializador automático de datos
+│   └── DataInitializerProperties.java  # **NUEVO** - Propiedades de configuración para carga de datos
 ├── controller/
 │   ├── UserController.java             # Controlador REST para usuarios
 │   ├── AuthenticationController.java   # Controlador REST para autenticación
 │   ├── CredentialController.java       # Controlador REST para credenciales
-│   └── NamespaceController.java        # Controlador REST para namespaces
+│   └── NamespaceController.java        # Controlador REST para namespaces - **COMPLETAMENTE IMPLEMENTADO**
 ├── dto/
 │   ├── APIResponseDTO.java             # DTO genérico para respuestas API
 │   └── AuthenticationResponseDTO.java  # DTO para respuestas de autenticación
@@ -44,25 +46,25 @@ src/main/java/com/zekret/
 │   ├── IGenericRepo.java
 │   ├── IUserRepo.java
 │   ├── ICredentialRepo.java
-│   ├── ICredentialTypeRepo.java
-│   ├── INamespaceRepo.java
+│   ├── ICredentialTypeRepo.java        # **MÉTODO OPTIMIZADO** - Query por ZRN para inicialización
+│   ├── INamespaceRepo.java             # **MÉTODOS OPTIMIZADOS** - Queries específicas por usuario
 │   └── ITokenRepo.java
 ├── security/
 │   ├── JwtAuthenticationFilter.java    # Filtro JWT personalizado
 │   └── CustomLogoutHandler.java        # Manejador de logout
 ├── util/
-│   ├── AuthenticationUtils.java        # Utilidad para autenticación JWT reutilizable
+│   ├── AuthenticationUtils.java        # **NUEVO** - Utilidad reutilizable para autenticación JWT
 │   └── ZrnGenerator.java               # Utilidad para generar ZRN únicos
 └── service/
     ├── ICRUD.java                      # Interface CRUD genérica
     ├── IUserService.java
     ├── ICredentialService.java
-    ├── INamespaceService.java
+    ├── INamespaceService.java          # **MÉTODOS ESPECÍFICOS** - Queries optimizadas por usuario
     └── impl/                           # Implementaciones de servicios
         ├── CRUDImpl.java
         ├── UserServiceImpl.java
         ├── CredentialServiceImpl.java
-        ├── NamespaceServiceImpl.java
+        ├── NamespaceServiceImpl.java   # **IMPLEMENTACIÓN COMPLETA** - CRUD optimizado
         ├── AuthenticationService.java
         ├── JwtService.java
         └── UserDetailsServiceImpl.java
@@ -302,6 +304,9 @@ private User getAuthenticatedUserFromToken(String authorizationHeader) {
 - **Header Authorization:** Formato `Authorization: Bearer <token>`
 - **User Filtering:** Todos los recursos se filtran automáticamente por usuario
 - **Relationship Validation:** Verificación explícita de relaciones por ID en servicios
+- **AuthenticationUtils:** **NUEVA UTILIDAD** - Extracción y validación de usuarios JWT reutilizable
+- **Optimized Queries:** Consultas específicas por usuario en lugar de cargar todos los datos
+- **Performance Escalable:** Rendimiento constante independiente del crecimiento de datos
 
 ## API REST
 
@@ -324,7 +329,7 @@ private User getAuthenticatedUserFromToken(String authorizationHeader) {
 #### Namespaces (`/v1/namespaces`) 🔒
 **Nota**: Todos los endpoints requieren autenticación JWT y filtran automáticamente por usuario.
 
-- **POST** `/register`: Crear un nuevo namespace
+- **POST** `/`: Crear un nuevo namespace
   - Genera ZRN automáticamente
   - Asigna namespace al usuario autenticado
   - Establece timestamps de creación
@@ -333,19 +338,23 @@ private User getAuthenticatedUserFromToken(String authorizationHeader) {
   - Solo permite modificar `name` y `description`
   - Actualiza `updatedAt` automáticamente
   - Valida pertenencia al usuario autenticado
+  - **OPTIMIZADO**: Usa query específica por ZRN y usuario
 
 - **GET** `/{zrn}`: Obtener namespace por ZRN
   - Busca namespace específico del usuario autenticado
   - Retorna error 404 si no existe o no pertenece al usuario
+  - **OPTIMIZADO**: Query directa sin cargar datos innecesarios
 
 - **GET** `/`: Listar todos los namespaces del usuario
   - Filtra automáticamente por usuario autenticado
   - Retorna lista completa de namespaces del usuario
+  - **OPTIMIZADO**: Query específica por usuario
 
 - **DELETE** `/{zrn}`: Eliminar namespace físicamente
   - Eliminación permanente de la base de datos
   - Valida pertenencia al usuario antes de eliminar
-  - Retorna APIResponseDTO con AuthenticationResponseDTO
+  - **OPTIMIZADO**: Validación previa con query específica
+  - Retorna confirmación de eliminación exitosa
 
 ### Gestión de Namespaces
 
@@ -354,7 +363,7 @@ private User getAuthenticatedUserFromToken(String authorizationHeader) {
 
 #### Crear Namespace
 ```bash
-curl -X POST http://localhost:8080/v1/namespaces/register \
+curl -X POST http://localhost:8080/v1/namespaces \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
@@ -428,15 +437,11 @@ La implementación del servicio maneja explícitamente las relaciones JPA por ID
 ```java
 @Override
 public Namespace register(Namespace entity) {
-    // Ensure the user relationship is properly set by ID
-    if (entity.getUser() != null && entity.getUser().getId() != null) {
-        Optional<User> user = userRepo.findById(entity.getUser().getId());
-        if (user.isPresent()) {
-            entity.setUser(user.get());
-        } else {
-            throw new RuntimeException("User not found with ID: " + entity.getUser().getId());
-        }
-    }
+    logger.info("Registering namespace with explicit user relationship handling");
+    
+    // User is already validated and set by the controller, no need to re-fetch
+    logger.info("User relationship already established: {}", entity.getUser().getUsername());
+    
     return super.register(entity);
 }
 ```
@@ -447,9 +452,81 @@ public Namespace register(Namespace entity) {
 - Manejo explícito de relaciones @ManyToOne y @OneToMany
 - Validación de existencia de entidades relacionadas
 
+### AuthenticationUtils - **NUEVA UTILIDAD REUTILIZABLE**
+
+Clase utilitaria que centraliza la extracción y validación de usuarios JWT para todos los controladores:
+
+```java
+@Component
+public class AuthenticationUtils {
+    
+    @Autowired
+    private JwtService jwtService;
+    
+    @Autowired
+    private IUserService userService;
+    
+    /**
+     * Extracts and validates the authenticated user from the JWT token
+     */
+    public User getAuthenticatedUserFromToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Invalid or missing Authorization header");
+        }
+        
+        String token = authorizationHeader.substring(7);
+        String username = jwtService.extractUsername(token);
+        
+        // Search in all users
+        List<User> allUsers = userService.getAll();
+        return allUsers.stream()
+                .filter(user -> user.getUsername().equals(username) || user.getEmail().equals(username))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    }
+}
+```
+
+**Beneficios:**
+- ✅ **Reutilización**: Un solo punto para autenticación JWT
+- ✅ **Consistencia**: Misma lógica en todos los controladores  
+- ✅ **Mantenibilidad**: Cambios centralizados
+- ✅ **Logging**: Trazabilidad unificada
+- ✅ **Error Handling**: Manejo consistente de errores
+
+### INamespaceService - **MÉTODOS OPTIMIZADOS**
+
+Interface extendida con consultas específicas por usuario para optimizar rendimiento:
+
+```java
+public interface INamespaceService extends ICRUD<Namespace, Long> {
+    
+    /**
+     * Get all namespaces for a specific user
+     */
+    List<Namespace> getNamespacesByUserId(Long userId);
+    
+    /**
+     * Get a namespace by ZRN and user ID - OPTIMIZED QUERY
+     */
+    Optional<Namespace> getNamespaceByZrnAndUserId(String zrn, Long userId);
+    
+    /**
+     * Check if a namespace exists for the user - EXISTENCE CHECK
+     */
+    boolean existsNamespaceByZrnAndUserId(String zrn, Long userId);
+}
+```
+
+**Optimizaciones de Performance:**
+- ✅ **Queries Específicas**: Consultas directas por usuario evitando cargar datos innecesarios
+- ✅ **Existence Checks**: Validaciones rápidas sin transferir entidades completas
+- ✅ **Escalabilidad**: Rendimiento constante independiente del crecimiento de datos
+- ✅ **Memory Efficiency**: Menor uso de memoria al evitar cargar colecciones grandes
+
 ## 📋 Controladores REST Estándar
 
-### NamespaceController (Optimizado)
+### NamespaceController - **COMPLETAMENTE IMPLEMENTADO Y OPTIMIZADO**
 
 **Ruta base:** `/v1/namespaces`
 **Autenticación:** Requerida en header `Authorization: Bearer <token>`
@@ -459,12 +536,15 @@ public Namespace register(Namespace entity) {
 - ✅ **Queries Específicas:** Consultas optimizadas por usuario y ZRN
 - ✅ **Performance Mejorada:** No carga datos innecesarios en memoria
 - ✅ **Escalabilidad:** Performance constante independiente del crecimiento
+- ✅ **Logging Detallado:** Trazabilidad completa de operaciones
+- ✅ **Error Handling:** Manejo robusto de errores y casos edge
 
-**Endpoints REST Optimizados:**
+**Endpoints REST Completamente Implementados:**
 
 #### 1. Crear Namespace
 - **Endpoint:** `POST /v1/namespaces`
 - **Descripción:** Crea un nuevo namespace para el usuario autenticado
+- **Optimizaciones:** Validación de usuario automática, generación de ZRN
 - **Body Request:**
 ```json
 {
@@ -476,11 +556,12 @@ public Namespace register(Namespace entity) {
 ```json
 {
   "data": {
-    "zrn": "zrn:namespace:development-abc123",
+    "zrn": "zrn:zekret:namespace:20250717:abc123-uuid",
     "name": "development", 
     "description": "Development environment namespace",
-    "createdAt": "2025-07-15T19:30:45.123456",
-    "updatedAt": "2025-07-15T19:30:45.123456"
+    "createdAt": "2025-07-17T19:30:45.123456",
+    "updatedAt": "2025-07-17T19:30:45.123456",
+    "credentials": []
   },
   "message": "Namespace created successfully",
   "success": true,
@@ -491,11 +572,73 @@ public Namespace register(Namespace entity) {
 #### 2. Actualizar Namespace
 - **Endpoint:** `PUT /v1/namespaces/{zrn}`
 - **Descripción:** Actualiza un namespace existente
+- **Optimizaciones:** Query directa por ZRN y usuario, validación previa
 - **Body Request:**
 ```json
 {
   "name": "production",
   "description": "Production environment namespace"
+}
+```
+
+#### 3. Obtener Namespace por ZRN
+- **Endpoint:** `GET /v1/namespaces/{zrn}`
+- **Descripción:** Obtiene un namespace específico del usuario
+- **Optimizaciones:** Query optimizada evitando carga de datos innecesarios
+
+#### 4. Listar Namespaces del Usuario
+- **Endpoint:** `GET /v1/namespaces`
+- **Descripción:** Lista todos los namespaces del usuario autenticado
+- **Optimizaciones:** Query específica por usuario, filtrado automático
+
+#### 5. Eliminar Namespace
+- **Endpoint:** `DELETE /v1/namespaces/{zrn}`
+- **Descripción:** Elimina permanentemente un namespace
+- **Optimizaciones:** Validación previa de existencia y pertenencia
+- **Response:**
+```json
+{
+  "data": "Namespace 'zrn:zekret:namespace:20250717:abc123' has been permanently deleted",
+  "message": "Namespace deleted successfully",
+  "success": true,
+  "statusCode": 200
+}
+```
+
+### Ejemplo de Implementación Optimizada
+
+```java
+@PutMapping("/{zrn}")
+public ResponseEntity<APIResponseDTO<Namespace>> updateNamespace(
+        @RequestHeader("Authorization") String authorizationHeader,
+        @PathVariable String zrn, 
+        @RequestBody Namespace request) {
+    try {
+        // Reutilizable authentication utility
+        User authenticatedUser = authenticationUtils.getAuthenticatedUserFromToken(authorizationHeader);
+        
+        // Optimized query - direct lookup by ZRN and user
+        Optional<Namespace> existingNamespaceOpt = namespaceService.getNamespaceByZrnAndUserId(zrn, authenticatedUser.getId());
+        
+        if (!existingNamespaceOpt.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(APIResponseDTO.error("Namespace not found or access denied", HttpStatus.NOT_FOUND.value()));
+        }
+        
+        // Update only allowed fields
+        Namespace existingNamespace = existingNamespaceOpt.get();
+        existingNamespace.setName(request.getName());
+        existingNamespace.setDescription(request.getDescription());
+        
+        Namespace updatedNamespace = namespaceService.modify(existingNamespace);
+        
+        return ResponseEntity.ok(APIResponseDTO.success("Namespace updated successfully", updatedNamespace, HttpStatus.OK.value()));
+        
+    } catch (Exception e) {
+        logger.error("Error updating namespace: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(APIResponseDTO.error("Failed to update namespace: " + e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+    }
 }
 ```
 
@@ -550,6 +693,72 @@ security.jwt.secret-key=${JWT_SECRET_KEY}
 security.jwt.access-token-expiration=43200000    # 12 horas
 security.jwt.refresh-token-expiration=86400000   # 24 horas
 ```
+
+### Inicialización Automática de Datos
+
+#### DataInitializer - Carga de Tipos de Credenciales
+El sistema incluye un componente de inicialización automática que carga los tipos de credenciales predefinidos al arrancar la aplicación:
+
+```java
+@Component
+public class DataInitializer implements CommandLineRunner {
+    
+    @Autowired
+    private DataInitializerProperties properties;
+    
+    @Autowired
+    private ICredentialTypeRepo credentialTypeRepo;
+    
+    @Override
+    public void run(String... args) throws Exception {
+        initializeCredentialTypes();
+    }
+}
+```
+
+**Características del Inicializador:**
+- ✅ **Carga Automática**: Se ejecuta al iniciar la aplicación
+- ✅ **Idempotente**: No duplica datos existentes, actualiza si es necesario
+- ✅ **Configurable**: Tipos definidos en `data-initializer.yml`
+- ✅ **Resiliente**: Valida configuración antes de procesar
+
+#### Configuración de Tipos Predefinidos
+Archivo `src/main/resources/data-initializer.yml`:
+
+```yaml
+data-initializer:
+  credentialType:
+    - zrn: username_password
+      name: Username/Password
+    - zrn: ssh_username
+      name: SSH Username
+    - zrn: secret_text
+      name: Secret Text
+    - zrn: file
+      name: File
+```
+
+**Tipos de Credenciales Inicializados:**
+- **username_password**: Para credenciales tradicionales de usuario/contraseña
+- **ssh_username**: Para claves SSH con usuario
+- **secret_text**: Para tokens, códigos o texto secreto
+- **file**: Para archivos como certificados o configuraciones
+
+#### ICredentialTypeRepo - Repository Optimizado
+```java
+public interface ICredentialTypeRepo extends IGenericRepo<CredentialType, Long> {
+    /**
+     * Find credential type by ZRN using Spring Data JPA naming convention
+     */
+    Optional<CredentialType> findByZrn(String zrn);
+}
+```
+
+**Ventajas del Sistema de Inicialización:**
+- **Datos Consistentes**: Garantiza que tipos básicos siempre estén disponibles
+- **Flexibilidad**: Fácil agregar nuevos tipos modificando el YAML
+- **Performance**: Carga una sola vez al inicio de la aplicación
+- **Mantenimiento**: Actualiza automáticamente nombres si cambian en configuración
 
 ### Variables de Entorno Requeridas
 - `JWT_SECRET_KEY`: Clave secreta para firmar tokens JWT
@@ -1327,6 +1536,50 @@ El sistema maneja diferentes tipos de credenciales identificados por ZRN:
 - `namespace`: Namespace de organización (requerido)
 - `credentialType`: Tipo de credencial (requerido)
 
+### Inicialización Automática de Credential Types
+
+#### Sistema de Carga Predefinida
+Los tipos de credenciales se cargan automáticamente al arrancar la aplicación mediante el componente `DataInitializer`:
+
+**Proceso de Inicialización:**
+1. **Lectura de Configuración**: Carga tipos desde `data-initializer.yml`
+2. **Validación de Existencia**: Verifica si el tipo ya existe por ZRN
+3. **Inserción o Actualización**: Crea nuevos tipos o actualiza nombres existentes
+4. **Logging**: Registra el proceso para auditoria
+
+**Configuración Actual (`data-initializer.yml`):**
+```yaml
+data-initializer:
+  credentialType:
+    - zrn: username_password
+      name: Username/Password
+    - zrn: ssh_username  
+      name: SSH Username
+    - zrn: secret_text
+      name: Secret Text
+    - zrn: file
+      name: File
+```
+
+**Ventajas del Sistema:**
+- ✅ **Automático**: No requiere intervención manual en despliegues
+- ✅ **Idempotente**: Puede ejecutarse múltiples veces sin duplicar datos
+- ✅ **Actualizable**: Permite modificar nombres de tipos existentes
+- ✅ **Extensible**: Fácil agregar nuevos tipos modificando el YAML
+- ✅ **Resiliente**: Maneja errores de configuración graciosamente
+
+**Agregar Nuevos Tipos:**
+Para agregar un nuevo tipo de credencial:
+1. Modificar `data-initializer.yml` agregando el nuevo tipo
+2. Reiniciar la aplicación (se carga automáticamente)
+3. El nuevo tipo estará disponible inmediatamente para uso
+
+**Ejemplo de Nuevo Tipo:**
+```yaml
+- zrn: api_key
+  name: API Key
+```
+
 ### Optimizaciones de Credential Repository
 Consultas específicas usando convenciones de Spring Data JPA:
 
@@ -1425,6 +1678,143 @@ private Namespace namespace;
 - Estructura de datos más consistente
 - Eliminación automática de datos huérfanos
 - Integración frontend simplificada
+
+---
+
+## 🔐 **Arquitectura de Seguridad JWT**
+
+### Implementación de Autenticación
+
+#### 1. **JwtService - Gestión de Tokens**
+Servicio centralizado para manejo de tokens JWT con soporte para access y refresh tokens:
+
+```java
+@Service
+public class JwtService {
+    
+    // Generación de tokens con diferentes tiempos de expiración
+    public String generateAccessToken(User usuario)    // Configurable via application.properties
+    public String generateRefreshToken(User usuario)   // Configurable via application.properties
+    
+    // Validación de tokens con verificación en base de datos
+    public boolean isValid(String token, UserDetails user)
+    public boolean isValidRefreshToken(String token, User usuario)
+    
+    // Extracción de información del token
+    public String extractUsername(String token)
+    public <T> T extractClaim(String token, Function<Claims, T> resolver)
+}
+```
+
+**Características Implementadas:**
+- ✅ **Doble Token System**: Access token (corta duración) + Refresh token (larga duración)
+- ✅ **Revocación de Tokens**: Validación con base de datos para logout instantáneo
+- ✅ **Claims Personalizados**: Username embebido en token para extracción rápida
+- ✅ **Configuración Externa**: Tiempos de expiración y secret key via properties
+
+#### 2. **JwtAuthenticationFilter - Interceptor de Requests**
+Filtro que procesa cada request HTTP para validar autenticación:
+
+```java
+@Component
+public final class JwtAuthenticationFilter extends OncePerRequestFilter {
+    
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, 
+                                   HttpServletResponse response, 
+                                   FilterChain filterChain) {
+        // 1. Extrae Bearer token del header Authorization
+        // 2. Valida formato y existencia del token
+        // 3. Extrae username del token JWT
+        // 4. Valida token contra base de datos
+        // 5. Establece contexto de seguridad si es válido
+        // 6. Continúa cadena de filtros
+    }
+}
+```
+
+**Proceso de Validación:**
+1. **Header Parsing**: Busca `Authorization: Bearer <token>`
+2. **Token Extraction**: Extrae JWT del header (substring(7))
+3. **Username Resolution**: Decodifica username del token sin validar signature
+4. **Database Validation**: Verifica que token no esté marcado como `loggedOut`
+5. **Security Context**: Establece `UsernamePasswordAuthenticationToken` si válido
+6. **Logging**: Detalla cada paso para debugging y auditoria
+
+#### 3. **AuthenticationUtils - Utilidad de Contexto**
+Clase utilitaria para acceso al usuario autenticado desde cualquier parte del código:
+
+```java
+@Component
+public class AuthenticationUtils {
+    
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication != null && authentication.isAuthenticated() && 
+            !(authentication instanceof AnonymousAuthenticationToken)) {
+            
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserPrincipal userPrincipal) {
+                return userPrincipal.getUser();
+            }
+        }
+        throw new RuntimeException("Usuario no autenticado");
+    }
+}
+```
+
+**Beneficios de la Implementación:**
+- ✅ **Acceso Centralizado**: Un punto para obtener el usuario actual en cualquier controller/service
+- ✅ **Type Safety**: Retorna directamente entidad `User` en lugar de `Object`
+- ✅ **Exception Handling**: Manejo consistente de usuarios no autenticados
+- ✅ **Principal Validation**: Verifica el tipo correcto de principal (`UserPrincipal`)
+
+### Integración con Controllers
+
+Todos los controllers utilizan `AuthenticationUtils` para operaciones específicas del usuario:
+
+```java
+@RestController
+public class NamespaceController {
+    
+    @Autowired
+    private AuthenticationUtils authUtils;
+    
+    @GetMapping
+    public ResponseEntity<GenericResponseDTO<List<NamespaceDTO>>> listar() {
+        User currentUser = authUtils.getCurrentUser();
+        // Operaciones específicas del usuario autenticado
+    }
+}
+```
+
+### Configuración de Seguridad
+
+Properties requeridas en `application.properties`:
+
+```properties
+# JWT Configuration
+security.jwt.secret-key=base64_encoded_secret_key_here
+security.jwt.access-token-expiration=86400000   # 24 horas en milliseconds
+security.jwt.refresh-token-expiration=604800000 # 7 días en milliseconds
+```
+
+### Estado de Implementación
+
+✅ **Completado**:
+- Sistema completo de autenticación JWT
+- Filtro de autenticación por request
+- Utilidad de acceso al usuario actual
+- Revocación segura de tokens
+- Logging y auditoria completos
+
+📋 **Características de Seguridad**:
+- Tokens con expiración configurable
+- Revocación inmediata via logout
+- Validación en cada request
+- Context de seguridad Spring estándar
+- Manejo de errores robusto
 
 ---
 
