@@ -1,3 +1,5 @@
+import { Credential } from "./credential";
+
 export class Namespace {
     name: string;
     zrn: string;

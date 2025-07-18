@@ -16,3 +16,10 @@ export interface CredentialTypeDTO {
     zrn: string;
     name: string;
 }
+
+export interface ConfirmDeleteDataDTO {
+  title?: string;
+  message?: string;
+  confirmText?: string;
+  cancelText?: string;
+}

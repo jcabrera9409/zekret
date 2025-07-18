@@ -9,6 +9,7 @@ export class Credential {
     sshPrivateKey: string;
     secretText: string;
     fileContent: string;
+    notes: string;
     createdAt: Date;
     updatedAt: Date;
     credentialType: CredentialTypeDTO;

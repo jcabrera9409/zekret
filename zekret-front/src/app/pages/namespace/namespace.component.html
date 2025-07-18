@@ -20,7 +20,7 @@
                 <button id="credentials-tab"class="py-2 px-1 border-b-2 text-sm font-medium {{isCredentialsTabActive ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}}"
                         (click) = "toggleCredentialsTab()">
                     Credenciales 
-                    <span id="selected-namespace-name" *ngIf="selectedNamespace" class="text-gray-600">({{selectedNamespace}})</span>
+                    <span id="selected-namespace-name" *ngIf="selectedNamespace" class="text-gray-600">({{selectedNamespace.name}})</span>
                 </button>
             </nav>
         </div>
