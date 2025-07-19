@@ -54,7 +54,7 @@ public class AuthenticationController {
         } catch (Exception e) {
             logger.error("Error during login for user: {} - {}", request.getUsername(), e.getMessage());
             APIResponseDTO<AuthenticationResponseDTO> response = APIResponseDTO.error(
-                "Authentication failed. Please check your credentials.", 
+                "Error de autenticación. Verifique sus credenciales.", 
                 HttpStatus.UNAUTHORIZED.value()
             );
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);

@@ -36,7 +36,7 @@ public class UserController {
             if (newUser != null) {
                 logger.info("User registered successfully: {}", newUser.getUsername());
                 APIResponseDTO<User> response = APIResponseDTO.success(
-                    "User registered successfully", 
+                    "Usuario registrado exitosamente", 
                     newUser, 
                     HttpStatus.CREATED.value()
                 );
@@ -44,7 +44,7 @@ public class UserController {
             } else {
                 logger.warn("User registration failed - user already exists: {}", request.getUsername());
                 APIResponseDTO<User> response = APIResponseDTO.error(
-                    "User with this email or username already exists", 
+                    "Usuario con este nombre o correo ya existe", 
                     HttpStatus.CONFLICT.value()
                 );
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
@@ -54,7 +54,7 @@ public class UserController {
             logger.error("Error during user registration for user: {} - {}", request.getUsername(), e.getMessage());
             APIResponseDTO<User> response = APIResponseDTO.error(
                 "User registration failed. Please try again.", 
-                HttpStatus.BAD_REQUEST.value()
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }

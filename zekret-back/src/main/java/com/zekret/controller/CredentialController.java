@@ -58,7 +58,7 @@ public class CredentialController {
             if (request.getNamespace() == null || request.getNamespace().getZrn() == null) {
                 logger.warn("Namespace ZRN is required for credential creation");
                 APIResponseDTO<Credential> response = APIResponseDTO.error(
-                    "Namespace ZRN is required", 
+                    "ZRN del namespace es requerido", 
                     HttpStatus.BAD_REQUEST.value()
                 );
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -68,7 +68,7 @@ public class CredentialController {
             if (request.getCredentialType() == null || request.getCredentialType().getZrn() == null) {
                 logger.warn("Credential type ZRN is required for credential creation");
                 APIResponseDTO<Credential> response = APIResponseDTO.error(
-                    "Credential type ZRN is required", 
+                    "ZRN del tipo de credencial es requerido", 
                     HttpStatus.BAD_REQUEST.value()
                 );
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
@@ -83,11 +83,11 @@ public class CredentialController {
             if (!namespaceOpt.isPresent()) {
                 logger.warn("Namespace not found or access denied: {}", request.getNamespace().getZrn());
                 APIResponseDTO<Credential> response = APIResponseDTO.error(
-                    "Namespace not found or access denied", 
+                    "Namespace no encontrado o con acceso denegado", 
                     HttpStatus.BAD_REQUEST.value()
                 );
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-            }
+            }            
             
             // Set system-generated fields
             request.setUser(authenticatedUser);
@@ -97,7 +97,7 @@ public class CredentialController {
             Credential savedCredential = credentialService.register(request);
             
             APIResponseDTO<Credential> response = APIResponseDTO.success(
-                "Credential created successfully", 
+                "Credencial creada exitosamente", 
                 savedCredential, 
                 HttpStatus.CREATED.value()
             );
@@ -108,10 +108,10 @@ public class CredentialController {
         } catch (Exception e) {
             logger.error("Error creating credential: {}", e.getMessage());
             APIResponseDTO<Credential> response = APIResponseDTO.error(
-                "Failed to create credential: " + e.getMessage(), 
-                HttpStatus.BAD_REQUEST.value()
+                "Error al crear la credencial",
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -135,7 +135,7 @@ public class CredentialController {
             if (!existingCredentialOpt.isPresent()) {
                 logger.warn("Credential not found or access denied: {}", zrn);
                 APIResponseDTO<Credential> response = APIResponseDTO.error(
-                    "Credential not found or access denied", 
+                    "Credencial no encontrada o con acceso denegado", 
                     HttpStatus.NOT_FOUND.value()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -161,7 +161,7 @@ public class CredentialController {
             Credential updatedCredential = credentialService.modify(existingCredential);
             
             APIResponseDTO<Credential> response = APIResponseDTO.success(
-                "Credential updated successfully", 
+                "Credencial actualizada exitosamente", 
                 updatedCredential, 
                 HttpStatus.OK.value()
             );
@@ -172,10 +172,10 @@ public class CredentialController {
         } catch (Exception e) {
             logger.error("Error updating credential: {}", e.getMessage());
             APIResponseDTO<Credential> response = APIResponseDTO.error(
-                "Failed to update credential: " + e.getMessage(), 
-                HttpStatus.BAD_REQUEST.value()
+                "Error al actualizar la credencial", 
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -195,7 +195,7 @@ public class CredentialController {
             
             if (credentialOpt.isPresent()) {
                 APIResponseDTO<Credential> response = APIResponseDTO.success(
-                    "Credential found", 
+                    "Credencial encontrada exitosamente", 
                     credentialOpt.get(), 
                     HttpStatus.OK.value()
                 );
@@ -203,7 +203,7 @@ public class CredentialController {
             } else {
                 logger.warn("Credential not found: {}", zrn);
                 APIResponseDTO<Credential> response = APIResponseDTO.error(
-                    "Credential not found", 
+                    "Credencial no encontrada o con acceso denegado", 
                     HttpStatus.NOT_FOUND.value()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -212,7 +212,7 @@ public class CredentialController {
         } catch (Exception e) {
             logger.error("Error finding credential: {}", e.getMessage());
             APIResponseDTO<Credential> response = APIResponseDTO.error(
-                "Failed to find credential: " + e.getMessage(), 
+                "Error al encontrar la credencial", 
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -233,7 +233,7 @@ public class CredentialController {
             List<Credential> userCredentials = credentialService.getCredentialsByUserId(authenticatedUser.getId());
             
             APIResponseDTO<List<Credential>> response = APIResponseDTO.success(
-                "Credentials retrieved successfully", 
+                "Credenciales encontradas exitosamente", 
                 userCredentials, 
                 HttpStatus.OK.value()
             );
@@ -244,7 +244,7 @@ public class CredentialController {
         } catch (Exception e) {
             logger.error("Error listing credentials: {}", e.getMessage());
             APIResponseDTO<List<Credential>> response = APIResponseDTO.error(
-                "Failed to retrieve credentials: " + e.getMessage(), 
+                "Error al listar las credenciales",
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -268,7 +268,7 @@ public class CredentialController {
             if (!credentialOpt.isPresent()) {
                 logger.warn("Credential not found for deletion: {}", zrn);
                 APIResponseDTO<String> response = APIResponseDTO.error(
-                    "Credential not found or access denied", 
+                    "Credencial no encontrada o con acceso denegado", 
                     HttpStatus.NOT_FOUND.value()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -278,7 +278,7 @@ public class CredentialController {
             credentialService.delete(credentialToDelete.getId());
             
             APIResponseDTO<String> response = APIResponseDTO.success(
-                "Credential deleted successfully", 
+                "Credencial eliminada exitosamente", 
                 "Credential '" + zrn + "' has been permanently deleted", 
                 HttpStatus.OK.value()
             );
@@ -289,7 +289,7 @@ public class CredentialController {
         } catch (Exception e) {
             logger.error("Error deleting credential: {}", e.getMessage());
             APIResponseDTO<String> response = APIResponseDTO.error(
-                "Failed to delete credential: " + e.getMessage(), 
+                "Error al eliminar la credencial", 
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -311,7 +311,7 @@ public class CredentialController {
             if (!namespaceService.existsNamespaceByZrnAndUserId(namespaceZrn, authenticatedUser.getId())) {
                 logger.warn("Namespace not found or access denied: {}", namespaceZrn);
                 APIResponseDTO<List<Credential>> response = APIResponseDTO.error(
-                    "Namespace not found or access denied", 
+                    "Namespace no encontrado o con acceso denegado", 
                     HttpStatus.NOT_FOUND.value()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -324,7 +324,7 @@ public class CredentialController {
             );
             
             APIResponseDTO<List<Credential>> response = APIResponseDTO.success(
-                "Credentials retrieved successfully for namespace", 
+                "Credenciales encontradas exitosamente para el namespace", 
                 namespaceCredentials, 
                 HttpStatus.OK.value()
             );
@@ -335,7 +335,7 @@ public class CredentialController {
         } catch (Exception e) {
             logger.error("Error listing credentials for namespace: {}", e.getMessage());
             APIResponseDTO<List<Credential>> response = APIResponseDTO.error(
-                "Failed to retrieve credentials for namespace: " + e.getMessage(), 
+                "Error al listar las credenciales del namespace",
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

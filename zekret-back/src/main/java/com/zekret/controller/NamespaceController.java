@@ -55,7 +55,7 @@ public class NamespaceController {
             Namespace savedNamespace = namespaceService.register(request);
             
             APIResponseDTO<Namespace> response = APIResponseDTO.success(
-                "Namespace created successfully", 
+                "Namespace creado exitosamente", 
                 savedNamespace, 
                 HttpStatus.CREATED.value()
             );
@@ -66,10 +66,10 @@ public class NamespaceController {
         } catch (Exception e) {
             logger.error("Error creating namespace: {}", e.getMessage());
             APIResponseDTO<Namespace> response = APIResponseDTO.error(
-                "Failed to create namespace: " + e.getMessage(), 
-                HttpStatus.BAD_REQUEST.value()
+                "Error al crear el namespace", 
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -91,7 +91,7 @@ public class NamespaceController {
             if (!existingNamespaceOpt.isPresent()) {
                 logger.warn("Namespace not found or access denied: {}", zrn);
                 APIResponseDTO<Namespace> response = APIResponseDTO.error(
-                    "Namespace not found or access denied", 
+                    "Namespace no encontrado o con acceso denegado", 
                     HttpStatus.NOT_FOUND.value()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -106,7 +106,7 @@ public class NamespaceController {
             Namespace updatedNamespace = namespaceService.modify(existingNamespace);
             
             APIResponseDTO<Namespace> response = APIResponseDTO.success(
-                "Namespace updated successfully", 
+                "Namespace actualizado exitosamente", 
                 updatedNamespace, 
                 HttpStatus.OK.value()
             );
@@ -117,10 +117,10 @@ public class NamespaceController {
         } catch (Exception e) {
             logger.error("Error updating namespace: {}", e.getMessage());
             APIResponseDTO<Namespace> response = APIResponseDTO.error(
-                "Failed to update namespace: " + e.getMessage(), 
-                HttpStatus.BAD_REQUEST.value()
+                "Error al actualizar el namespace", 
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
     
@@ -140,7 +140,7 @@ public class NamespaceController {
             
             if (namespaceOpt.isPresent()) {
                 APIResponseDTO<Namespace> response = APIResponseDTO.success(
-                    "Namespace found", 
+                    "Namespace encontrado exitosamente", 
                     namespaceOpt.get(), 
                     HttpStatus.OK.value()
                 );
@@ -148,7 +148,7 @@ public class NamespaceController {
             } else {
                 logger.warn("Namespace not found: {}", zrn);
                 APIResponseDTO<Namespace> response = APIResponseDTO.error(
-                    "Namespace not found", 
+                    "Namespace no encontrado", 
                     HttpStatus.NOT_FOUND.value()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -157,7 +157,7 @@ public class NamespaceController {
         } catch (Exception e) {
             logger.error("Error finding namespace: {}", e.getMessage());
             APIResponseDTO<Namespace> response = APIResponseDTO.error(
-                "Failed to find namespace: " + e.getMessage(), 
+                "Error al buscar el namespace", 
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -178,7 +178,7 @@ public class NamespaceController {
             List<Namespace> userNamespaces = namespaceService.getNamespacesByUserId(authenticatedUser.getId());
             
             APIResponseDTO<List<Namespace>> response = APIResponseDTO.success(
-                "Namespaces retrieved successfully", 
+                "Namespaces encontrados exitosamente", 
                 userNamespaces, 
                 HttpStatus.OK.value()
             );
@@ -189,7 +189,7 @@ public class NamespaceController {
         } catch (Exception e) {
             logger.error("Error listing namespaces: {}", e.getMessage());
             APIResponseDTO<List<Namespace>> response = APIResponseDTO.error(
-                "Failed to retrieve namespaces: " + e.getMessage(), 
+                "Error al listar los namespaces", 
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
@@ -213,7 +213,7 @@ public class NamespaceController {
             if (!namespaceOpt.isPresent()) {
                 logger.warn("Namespace not found for deletion: {}", zrn);
                 APIResponseDTO<String> response = APIResponseDTO.error(
-                    "Namespace not found or access denied", 
+                    "Namespace no encontrado o con acceso denegado", 
                     HttpStatus.NOT_FOUND.value()
                 );
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -223,7 +223,7 @@ public class NamespaceController {
             namespaceService.delete(namespaceToDelete.getId());
             
             APIResponseDTO<String> response = APIResponseDTO.success(
-                "Namespace deleted successfully", 
+                "Namespace eliminado exitosamente", 
                 "Namespace '" + zrn + "' has been permanently deleted", 
                 HttpStatus.OK.value()
             );
@@ -234,7 +234,7 @@ public class NamespaceController {
         } catch (Exception e) {
             logger.error("Error deleting namespace: {}", e.getMessage());
             APIResponseDTO<String> response = APIResponseDTO.error(
-                "Failed to delete namespace: " + e.getMessage(), 
+                "Error al eliminar el namespace", 
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
             );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

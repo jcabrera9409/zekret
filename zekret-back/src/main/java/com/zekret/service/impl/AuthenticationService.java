@@ -53,7 +53,7 @@ public class AuthenticationService {
 
             // Find user by email or username
             User usuario = repository.findByEmailOrUsername(request.getUsername(), request.getUsername())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
             
             if (usuario.isEnabled()) {
                 logger.info("User authenticated successfully: {}", usuario.getUsername());
@@ -66,15 +66,15 @@ public class AuthenticationService {
                 revokeAllTokenByUser(usuario);
                 saveUserToken(accessToken, refreshToken, usuario);
 
-                return new AuthenticationResponseDTO(accessToken, refreshToken, "User authenticated successfully");
+                return new AuthenticationResponseDTO(accessToken, refreshToken, "Usuario autenticado exitosamente");
             } else {
                 logger.warn("Account is disabled for user: {}", usuario.getUsername());
-                return new AuthenticationResponseDTO(null, null, "Your account is not enabled. Please contact support.");
+                return new AuthenticationResponseDTO(null, null, "Cuenta deshabilitada. Contacte al administrador.");
             }
             
         } catch (Exception e) {
             logger.error("Authentication failed for user: {} - {}", request.getUsername(), e.getMessage());
-            return new AuthenticationResponseDTO(null, null, "Invalid credentials");
+            return new AuthenticationResponseDTO(null, null, "Error de autenticación. Verifique sus credenciales.");
         }
     }
 

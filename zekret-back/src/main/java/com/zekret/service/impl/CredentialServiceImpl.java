@@ -40,22 +40,7 @@ public class CredentialServiceImpl extends CRUDImpl<Credential, Long> implements
         
         // User is already validated and set by the controller, no need to re-fetch
         logger.info("User relationship already established: {}", entity.getUser().getUsername());
-        
-        // Ensure the namespace relationship is properly set by ZRN
-        if (entity.getNamespace() != null && entity.getNamespace().getZrn() != null) {
-            Optional<Namespace> namespace = namespaceRepo.findByZrnAndUserId(
-                entity.getNamespace().getZrn(), 
-                entity.getUser().getId()
-            );
-            if (namespace.isPresent()) {
-                entity.setNamespace(namespace.get());
-                logger.info("Namespace relationship established for credential: {}", namespace.get().getZrn());
-            } else {
-                logger.error("Namespace not found or access denied: {}", entity.getNamespace().getZrn());
-                throw new RuntimeException("Namespace not found or access denied: " + entity.getNamespace().getZrn());
-            }
-        }
-        
+                
         // Ensure the credential type relationship is properly set by ZRN
         if (entity.getCredentialType() != null && entity.getCredentialType().getZrn() != null) {
             Optional<CredentialType> credentialType = credentialTypeRepo.findByZrn(
@@ -66,7 +51,7 @@ public class CredentialServiceImpl extends CRUDImpl<Credential, Long> implements
                 logger.info("Credential type relationship established: {}", credentialType.get().getZrn());
             } else {
                 logger.error("Credential type not found: {}", entity.getCredentialType().getZrn());
-                throw new RuntimeException("Credential type not found: " + entity.getCredentialType().getZrn());
+                throw new RuntimeException("Tipo de credencial no encontrado: " + entity.getCredentialType().getZrn());
             }
         }
         
@@ -100,7 +85,7 @@ public class CredentialServiceImpl extends CRUDImpl<Credential, Long> implements
                 logger.info("Credential type relationship updated: {}", credentialType.get().getZrn());
             } else {
                 logger.error("Credential type not found: {}", entity.getCredentialType().getZrn());
-                throw new RuntimeException("Credential type not found: " + entity.getCredentialType().getZrn());
+                throw new RuntimeException("Tipo de credencial no encontrado: " + entity.getCredentialType().getZrn());
             }
         }
         
