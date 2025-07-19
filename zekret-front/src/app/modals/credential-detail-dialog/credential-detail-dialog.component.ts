@@ -2,6 +2,8 @@ import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Credential } from '../../_model/credential';
 import { CommonModule } from '@angular/common';
+import { NotificationService } from '../../_service/notification.service';
+import { Message } from '../../_model/message';
 
 @Component({
   selector: 'app-credential-detail-dialog',
@@ -18,6 +20,7 @@ export class CredentialDetailDialogComponent {
   isFile: boolean = false;
 
   constructor(
+    private notificationService: NotificationService,
     private dialogRef: MatDialogRef<CredentialDetailDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public credential: Credential
   ) {
@@ -26,9 +29,13 @@ export class CredentialDetailDialogComponent {
 
   copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
-      console.log('Texto copiado al portapapeles:', text);
+      this.notificationService.setMessageChange(
+        Message.info('Texto copiado al portapapeles')
+      );
     }).catch(err => {
-      console.error('Error al copiar al portapapeles:', err);
+      this.notificationService.setMessageChange(
+        Message.error('Error al copiar al portapapeles', err)
+      );
     });
   }
 

@@ -8,11 +8,13 @@ import { Credential } from '../../_model/credential';
 import { CredentialService } from '../../_service/credential.service';
 import { catchError, EMPTY, switchMap } from 'rxjs';
 import { Message } from '../../_model/message';
+import { LoaderComponent } from "../../shared/loader/loader.component";
+import { NotificationService } from '../../_service/notification.service';
 
 @Component({
   selector: 'app-credential-edition-dialog',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, LoaderComponent],
   templateUrl: './credential-edition-dialog.component.html',
   styleUrl: './credential-edition-dialog.component.css'
 })
@@ -28,6 +30,7 @@ export class CredentialEditionDialogComponent {
   constructor(
     private dialogRef: MatDialogRef<CredentialEditionDialogComponent>,
     private credentialService: CredentialService,
+    private notificationService: NotificationService,
     @Inject(MAT_DIALOG_DATA) public data: CredentialEditionDialogData
   ) {
     this.credentialForm = new FormGroup({
@@ -91,7 +94,9 @@ export class CredentialEditionDialogComponent {
 
   onSubmit() {
     if (this.credentialForm.invalid) {
-      console.error(this.credentialForm);
+      this.notificationService.setMessageChange(
+        Message.error('Por favor complete todos los campos requeridos')
+      );
       return;
     }
 
@@ -128,15 +133,17 @@ export class CredentialEditionDialogComponent {
     operation
       .pipe(
         catchError(error => {
-          console.error('Error during credential operation:', error);
-          this.credentialService.setChangeMessage(new Message("ERROR", 'Ocurrió un error al procesar la operación', error));
+          this.notificationService.setMessageChange(
+            Message.error('Ocurrió un error al procesar la operación', error)
+          );
           this.isLoading = false;
           return EMPTY;
         }),
         switchMap(() => this.credentialService.getAllByNamespaceZrn(this.data.namespace.zrn)),
         catchError(error => {
-          console.error('Error fetching credentials after operation:', error);
-          this.credentialService.setChangeMessage(new Message("ERROR", 'Ocurrió un error al obtener las credenciales', error));
+          this.notificationService.setMessageChange(
+            Message.error('Ocurrió un error al obtener las credenciales', error)
+          );
           this.isLoading = false;
           return EMPTY;
         })
@@ -145,16 +152,21 @@ export class CredentialEditionDialogComponent {
         next: (response) => {
           if (response.success) {
             this.credentialService.setChangeObject(response.data);
-            this.credentialService.setChangeMessage(new Message("SUCCESS", 'Credencial procesada correctamente'));
+            this.notificationService.setMessageChange(
+              Message.success('Credencial procesada correctamente')
+            );
             this.dialogRef.close();
           } else {
-            this.credentialService.setChangeMessage(new Message("ERROR", response.message));
+            this.notificationService.setMessageChange(
+              Message.error('Error al procesar la credencial', response.message)
+            );
           }
           this.isLoading = false;
         },
         error: (error) => {
-          console.error('Error processing credential:', error);
-          this.credentialService.setChangeMessage(new Message("ERROR", 'Ocurrió un error al procesar la credencial', error));
+          this.notificationService.setMessageChange(
+            Message.error('Ocurrió un error al procesar la credencial', error)
+          );
           this.isLoading = false;
         }
       });

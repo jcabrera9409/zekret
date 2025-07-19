@@ -1,15 +1,18 @@
 import { Component, Inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 import { Namespace } from '../../_model/namespace';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NamespaceService } from '../../_service/namespace.service';
 import { catchError, EMPTY, switchMap } from 'rxjs';
 import { Message } from '../../_model/message';
+import { LoaderComponent } from "../../shared/loader/loader.component";
+import { NotificationService } from '../../_service/notification.service';
 
 @Component({
   selector: 'app-namespace-edition-dialog',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, LoaderComponent],
   templateUrl: './namespace-edition-dialog.component.html',
   styleUrl: './namespace-edition-dialog.component.css'
 })
@@ -22,6 +25,7 @@ export class NamespaceEditionDialogComponent {
   constructor(
     private dialogRef: MatDialogRef<NamespaceEditionDialogComponent>,
     private namespaceService: NamespaceService,
+    private notificationService: NotificationService,
     @Inject(MAT_DIALOG_DATA) private namespace: Namespace | null
   ) {
     this.form = new FormGroup({
@@ -35,6 +39,9 @@ export class NamespaceEditionDialogComponent {
 
   onSubmit() {
     if (this.form.invalid) {
+      this.notificationService.setMessageChange(
+        Message.error('Por favor, completa todos los campos requeridos')
+      );
       return;
     }
 
@@ -51,15 +58,17 @@ export class NamespaceEditionDialogComponent {
     operation
       .pipe(
         catchError(error => {
-          console.error('Error during namespace operation:', error);
-          this.namespaceService.setChangeMessage(new Message("ERROR", 'Ocurrió un error al procesar la operación', error));
+          this.notificationService.setMessageChange(
+            Message.error('Ocurrió un error al procesar la operación', error)
+          );
           this.isLoading = false;
           return EMPTY;
         }),
         switchMap(() => this.namespaceService.getAll()),
         catchError(error => {
-          console.error('Error fetching namespaces after operation:', error);
-          this.namespaceService.setChangeMessage(new Message("ERROR", 'Ocurrió un error al obtener los namespaces', error));
+          this.notificationService.setMessageChange(
+            Message.error('Ocurrió un error al obtener los namespaces', error)
+          );
           this.isLoading = false;
           return EMPTY;
         })
@@ -68,16 +77,21 @@ export class NamespaceEditionDialogComponent {
         next: (response) => {
           if (response.success) {
             this.namespaceService.setChangeObject(response.data);
-            this.namespaceService.setChangeMessage(new Message("SUCCESS", 'Namespace procesado correctamente'));
+            this.notificationService.setMessageChange(
+              Message.success('Namespace procesado correctamente')
+            );
             this.dialogRef.close();
           } else {
-            this.namespaceService.setChangeMessage(new Message("ERROR", response.message));
+            this.notificationService.setMessageChange(
+              Message.error('Error al procesar el namespace', response.message)
+            );
           }
           this.isLoading = false;
         },
         error: (error) => {
-          console.error('Error processing namespace:', error);
-          this.namespaceService.setChangeMessage(new Message("ERROR", 'Ocurrió un error al procesar el namespace', error));
+          this.notificationService.setMessageChange(
+            Message.error('Ocurrió un error al procesar el namespace', error)
+          );
           this.isLoading = false;
         }
       });

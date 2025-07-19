@@ -7,24 +7,30 @@ import { NamespaceService } from '../../../_service/namespace.service';
 import { Namespace } from '../../../_model/namespace';
 import { ConfirmDeleteDataDTO } from '../../../_model/dto';
 import { CredentialService } from '../../../_service/credential.service';
+import { LoaderComponent } from "../../../shared/loader/loader.component";
+import { NotificationService } from '../../../_service/notification.service';
+import { Message } from '../../../_model/message';
 
 
 @Component({
   selector: 'app-index-namespace',
   standalone: true,
-  imports: [CommonModule, MatDialogModule],
+  imports: [CommonModule, MatDialogModule, LoaderComponent],
   templateUrl: './index-namespace.component.html',
   styleUrl: './index-namespace.component.css'
 })
 export class IndexNamespaceComponent implements OnInit {
   @Output() namespaceSelected = new EventEmitter<Namespace>();
 
+  isLoading: boolean = false;
+
   namespaces: Namespace[] = [];
 
   constructor(
     private dialog: MatDialog,
     private namespaceService: NamespaceService,
-    private credentialService: CredentialService
+    private credentialService: CredentialService,
+    private notificationService: NotificationService
   ){}
 
   ngOnInit(): void {
@@ -32,7 +38,6 @@ export class IndexNamespaceComponent implements OnInit {
     this.namespaceService.getChangeObject().subscribe({
       next: (namespaces) => {
         this.namespaces = namespaces;
-        console.log('Namespaces updated:', this.namespaces);
       }
       , error: (error) => {
         console.error('Error updating namespaces:', error);
@@ -58,19 +63,21 @@ export class IndexNamespaceComponent implements OnInit {
   }
 
   getAllNamespaces() {
+    this.isLoading = true;
     this.namespaceService.getAll().subscribe({
       next: (response) => {
         if (response.success) {
           this.namespaceService.setChangeObject(response.data);
-          console.log('Namespaces loaded successfully:', response.data);
         } else {
           this.namespaceService.setChangeObject([]);
           console.error('Failed to load namespaces:', response.message);
         }
+        this.isLoading = false;
       }
       , error: (error) => {
         this.namespaceService.setChangeObject([]);
         console.error('Error fetching namespaces:', error);
+        this.isLoading = false;
       }
     });
   }
@@ -107,18 +114,27 @@ export class IndexNamespaceComponent implements OnInit {
   }
 
   private confirmDeleteNamespace(namespace: Namespace) {
+    this.isLoading = true;
     this.namespaceService.deleteByZrn(namespace.zrn).subscribe({
       next: (response) => {
         if (response.success) {
           this.namespaceService.setChangeObjectDelete(namespace);
           this.getAllNamespaces();
-          console.log('Namespace deleted successfully:', namespace.name);
+          this.notificationService.setMessageChange(
+            Message.success('Namespace eliminado correctamente')
+          );
         } else {
-          console.error('Failed to delete namespace:', response.message);
+          this.notificationService.setMessageChange(
+            Message.error('Error al eliminar el namespace', response.message)
+          );
         }
+        this.isLoading = false;
       }
       , error: (error) => {
-        console.error('Error deleting namespace:', error);
+        this.notificationService.setMessageChange(
+          Message.error('Ocurrió un error al eliminar el namespace', error)
+        );
+        this.isLoading = false;
       }
     });
   }

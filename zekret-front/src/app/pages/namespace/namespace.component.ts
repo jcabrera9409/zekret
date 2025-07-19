@@ -6,11 +6,12 @@ import { IndexNamespaceComponent } from "./index-namespace/index-namespace.compo
 import { CredentialsComponent } from "./credentials/credentials.component";
 import { Namespace } from '../../_model/namespace';
 import { NamespaceService } from '../../_service/namespace.service';
+import { LoaderComponent } from "../../shared/loader/loader.component";
 
 @Component({
   selector: 'app-namespace',
   standalone: true,
-  imports: [CommonModule, HeaderComponent, StatsNamespaceComponent, IndexNamespaceComponent, CredentialsComponent],
+  imports: [CommonModule, HeaderComponent, StatsNamespaceComponent, IndexNamespaceComponent, CredentialsComponent, LoaderComponent],
   templateUrl: './namespace.component.html',
   styleUrl: './namespace.component.css'
 })

@@ -4,11 +4,14 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../_service/auth.service';
 import { UtilMethods } from '../../util/util';
+import { LoaderComponent } from "../../shared/loader/loader.component";
+import { Message } from '../../_model/message';
+import { NotificationService } from '../../_service/notification.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [ReactiveFormsModule, CommonModule, LoaderComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
@@ -20,11 +23,9 @@ export class LoginComponent {
   isLoginMode: boolean = true;
   isLoading: boolean = false;
 
-  validationError: boolean = false;
-  validationMessage: string = '';
-
   constructor(
     private authService: AuthService,
+    private notificationService: NotificationService,
     private router: Router,
   ) {
     this.loginForm = new FormGroup({
@@ -53,15 +54,16 @@ export class LoginComponent {
           },
           error: (error) => {
             this.isLoading = false;
-            this.validationError = true;
-            this.validationMessage = 'Credenciales incorrectas. Por favor, intente de nuevo.';
-            console.error('Login error', error);
+            this.notificationService.setMessageChange(
+              Message.error('Credenciales incorrectas. Por favor, intente de nuevo.', error)
+            );
           }
         });
 
       } else {
-        this.validationError = true;
-        this.validationMessage = 'Por favor, complete todos los campos requeridos correctamente.';
+        this.notificationService.setMessageChange(
+          Message.error('Por favor, complete todos los campos requeridos correctamente.')
+        );
       }
     }
   }
@@ -77,8 +79,10 @@ export class LoginComponent {
           this.router.navigate(['/space', this.registerForm.value.username]);
         }, 2000);
       } else {
-        this.validationError = true;
-        this.validationMessage = 'Por favor, complete todos los campos requeridos correctamente.';
+        this.isLoading = false;
+        this.notificationService.setMessageChange(
+          Message.error('Por favor, complete todos los campos requeridos correctamente.')
+        );
       }
     }
   }
