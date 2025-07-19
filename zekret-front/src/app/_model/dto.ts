@@ -1,3 +1,5 @@
+import { ValidatorFn } from "@angular/forms";
+
 export interface APIResponseDTO<T> {
     statusCode: number;
     message: string;
@@ -15,6 +17,7 @@ export interface AuthenticationResponseDTO {
 export interface CredentialTypeDTO {
     zrn: string;
     name: string;
+    inputs: { formControlName: string; validator?: ValidatorFn[] }[];
 }
 
 export interface ConfirmDeleteDataDTO {

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, Renderer2 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Namespace } from '../../_model/namespace';
@@ -8,6 +8,7 @@ import { catchError, EMPTY, finalize, switchMap } from 'rxjs';
 import { Message } from '../../_model/message';
 import { LoaderComponent } from "../../shared/loader/loader.component";
 import { NotificationService } from '../../_service/notification.service';
+import { FormMethods } from '../../util/forms';
 
 @Component({
   selector: 'app-namespace-edition-dialog',
@@ -26,6 +27,7 @@ export class NamespaceEditionDialogComponent {
     private dialogRef: MatDialogRef<NamespaceEditionDialogComponent>,
     private namespaceService: NamespaceService,
     private notificationService: NotificationService,
+    private renderer: Renderer2,
     @Inject(MAT_DIALOG_DATA) private namespace: Namespace | null
   ) {
     this.form = new FormGroup({
@@ -35,10 +37,12 @@ export class NamespaceEditionDialogComponent {
     if (this.namespace) {
       this.tituloDialog = 'Editar Namespace';
     }
+    FormMethods.addSubscribesForm(this.form, renderer);
   }
 
   onSubmit() {
     if (this.form.invalid) {
+      FormMethods.validateForm(this.form, this.renderer);
       this.notificationService.setMessageChange(
         Message.error('Por favor, completa todos los campos requeridos')
       );

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Renderer2 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -8,6 +8,7 @@ import { LoaderComponent } from "../../shared/loader/loader.component";
 import { Message } from '../../_model/message';
 import { NotificationService } from '../../_service/notification.service';
 import { finalize } from 'rxjs';
+import { FormMethods } from '../../util/forms';
 
 @Component({
   selector: 'app-login',
@@ -27,6 +28,7 @@ export class LoginComponent {
   constructor(
     private authService: AuthService,
     private notificationService: NotificationService,
+    private renderer: Renderer2,
     private router: Router,
   ) {
     this.loginForm = new FormGroup({
@@ -39,50 +41,55 @@ export class LoginComponent {
       username: new FormControl('', Validators.required),
       password: new FormControl('', [Validators.required, Validators.minLength(6)])
     });
+
+    FormMethods.addSubscribesForm(this.loginForm, renderer);
+    FormMethods.addSubscribesForm(this.registerForm, renderer);
   }
 
   toggleAuth() {
     if (this.isLoginMode) {
-      if (this.loginForm.valid) {
-        this.isLoading = true;
-        const email = this.loginForm.value.email;
-        const password = this.loginForm.value.password;
-        this.authService.login(email, password)
-          .pipe(
-            finalize(() => {
-              this.isLoading = false;
-            })
-          )
-          .subscribe({
-            next: (response) => {
-              UtilMethods.setJwtToken(response.data.access_token);
-              this.router.navigate([UtilMethods.getUsernameFieldJwtToken()]);
-            }
-          });
-      } else {
+      if (this.loginForm.invalid) {
+        FormMethods.validateForm(this.loginForm, this.renderer);
         this.notificationService.setMessageChange(
           Message.error('Por favor, complete todos los campos requeridos correctamente.')
         );
+        return;
       }
+      this.isLoading = true;
+      const email = this.loginForm.value.email;
+      const password = this.loginForm.value.password;
+      this.authService.login(email, password)
+        .pipe(
+          finalize(() => {
+            this.isLoading = false;
+          })
+        )
+        .subscribe({
+          next: (response) => {
+            UtilMethods.setJwtToken(response.data.access_token);
+            this.router.navigate([UtilMethods.getUsernameFieldJwtToken()]);
+          }
+        });
+
     }
   }
 
   toggleRegister() {
     if (!this.isLoginMode) {
-      if (this.registerForm.valid) {
-        this.isLoading = true;
-        console.log('Registering with', this.registerForm.value);
-        setTimeout(() => {
-          this.isLoading = false;
-          console.log('Register successful');
-          this.router.navigate(['/space', this.registerForm.value.username]);
-        }, 2000);
-      } else {
-        this.isLoading = false;
+      if (this.registerForm.invalid) {
+        FormMethods.validateForm(this.registerForm, this.renderer);
         this.notificationService.setMessageChange(
           Message.error('Por favor, complete todos los campos requeridos correctamente.')
         );
+        return;
       }
+      this.isLoading = true;
+      console.log('Registering with', this.registerForm.value);
+      setTimeout(() => {
+        this.isLoading = false;
+        console.log('Register successful');
+        this.router.navigate(['/space', this.registerForm.value.username]);
+      }, 2000);
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, Renderer2 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { credentialType } from '../../_model/credential-type';
@@ -10,6 +10,7 @@ import { catchError, EMPTY, finalize, switchMap } from 'rxjs';
 import { Message } from '../../_model/message';
 import { LoaderComponent } from "../../shared/loader/loader.component";
 import { NotificationService } from '../../_service/notification.service';
+import { FormMethods } from '../../util/forms';
 
 @Component({
   selector: 'app-credential-edition-dialog',
@@ -18,6 +19,7 @@ import { NotificationService } from '../../_service/notification.service';
   templateUrl: './credential-edition-dialog.component.html',
   styleUrl: './credential-edition-dialog.component.css'
 })
+
 export class CredentialEditionDialogComponent {
 
   isLoading: boolean = false;
@@ -31,14 +33,15 @@ export class CredentialEditionDialogComponent {
     private dialogRef: MatDialogRef<CredentialEditionDialogComponent>,
     private credentialService: CredentialService,
     private notificationService: NotificationService,
+    private renderer: Renderer2,
     @Inject(MAT_DIALOG_DATA) public data: CredentialEditionDialogData
   ) {
     this.credentialForm = new FormGroup({
       title: new FormControl( this.data.credential ? this.data.credential.title : '' , [Validators.required]),
-      type: new FormControl( this.data.credential ? this.data.credential.credentialType.zrn : credentialType[0].zrn, [Validators.required]),
+      type: new FormControl( this.data.credential ? this.data.credential.credentialType.zrn : "username_password", [Validators.required]),
       
-      up_username: new FormControl(this.data.credential ? this.data.credential.username : ''),
-      up_password: new FormControl(this.data.credential ? this.data.credential.password : ''),
+      up_username: new FormControl(this.data.credential ? this.data.credential.username : '', [Validators.required]),
+      up_password: new FormControl(this.data.credential ? this.data.credential.password : '', [Validators.required]),
 
       ssh_private_key: new FormControl(this.data.credential ? this.data.credential.sshPrivateKey : ''),
 
@@ -55,6 +58,8 @@ export class CredentialEditionDialogComponent {
       this.dialogTitle = 'Editar Credencial';
       this.changeValidators(this.data.credential.credentialType.zrn);
     }
+
+    FormMethods.addSubscribesForm(this.credentialForm, renderer);
   }
 
   onTypeChange(event: any) {
@@ -63,29 +68,19 @@ export class CredentialEditionDialogComponent {
   }
 
   changeValidators(credentialType: string) {
-    this.credentialForm.get('up_username')?.clearValidators();
-    this.credentialForm.get('up_password')?.clearValidators();
-    this.credentialForm.get('ssh_private_key')?.clearValidators();
-    this.credentialForm.get('secret_text')?.clearValidators();
-    this.credentialForm.get('file_name')?.clearValidators();
-    this.credentialForm.get('file_content')?.clearValidators();
-    switch (credentialType) {
-      case 'username_password':
-        this.credentialForm.get('up_username')?.setValidators([Validators.required]);
-        this.credentialForm.get('up_password')?.setValidators([Validators.required]);
-        break;
-      case 'ssh_username':
-        this.credentialForm.get('up_username')?.setValidators([Validators.required]);
-        this.credentialForm.get('ssh_private_key')?.setValidators([Validators.required]);
-        break;
-      case 'secret_text':
-        this.credentialForm.get('secret_text')?.setValidators([Validators.required]);
-        break;
-      case 'file':
-        this.credentialForm.get('file_name')?.setValidators([Validators.required]);
-        this.credentialForm.get('file_content')?.setValidators([Validators.required]);
-        break;
+    for (const controlName in this.credentialType) {
+      for (const input of this.credentialType[controlName].inputs) {
+        this.credentialForm.get(input.formControlName)?.clearValidators();
+        this.credentialForm.get(input.formControlName)?.updateValueAndValidity();
+      }
     }
+
+    const inputs = this.credentialType[credentialType]?.inputs || [];
+    inputs.forEach(input => {
+      const controlName = input.formControlName;
+      this.credentialForm.get(controlName)?.setValidators(input.validator);
+      this.credentialForm.get(controlName)?.updateValueAndValidity();
+    });
   }
 
   isTypeSelected(type: string): boolean {
@@ -94,6 +89,7 @@ export class CredentialEditionDialogComponent {
 
   onSubmit() {
     if (this.credentialForm.invalid) {
+      FormMethods.validateForm(this.credentialForm, this.renderer);
       this.notificationService.setMessageChange(
         Message.error('Por favor complete todos los campos requeridos')
       );
@@ -104,7 +100,7 @@ export class CredentialEditionDialogComponent {
     let credentialData: Credential = new Credential();
     credentialData.zrn = this.data.credential ? this.data.credential.zrn : '';
     credentialData.title = this.credentialForm.value.title;
-    credentialData.credentialType = this.credentialType.find(ct => ct.zrn === this.credentialForm.value.type);
+    credentialData.credentialType = this.credentialType[this.credentialForm.value.type] //this.credentialType.find(ct => ct.zrn === this.credentialForm.value.type);
     credentialData.namespace = this.data.namespace;
     credentialData.notes = this.credentialForm.value.notas;
     
