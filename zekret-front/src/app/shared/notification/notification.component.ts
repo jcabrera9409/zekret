@@ -26,9 +26,6 @@ export class NotificationComponent implements OnInit, OnDestroy {
     this.messageSubscription = this.notificationService.getMessageChange().subscribe({
       next: (message: Message) => {
         this.showNotification(message);
-      },
-      error: (error) => {
-        console.error('Error fetching notifications:', error);
       }
     });
   }

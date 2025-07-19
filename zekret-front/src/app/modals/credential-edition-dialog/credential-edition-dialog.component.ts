@@ -6,7 +6,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { Namespace } from '../../_model/namespace';
 import { Credential } from '../../_model/credential';
 import { CredentialService } from '../../_service/credential.service';
-import { catchError, EMPTY, switchMap } from 'rxjs';
+import { catchError, EMPTY, finalize, switchMap } from 'rxjs';
 import { Message } from '../../_model/message';
 import { LoaderComponent } from "../../shared/loader/loader.component";
 import { NotificationService } from '../../_service/notification.service';
@@ -136,7 +136,6 @@ export class CredentialEditionDialogComponent {
           this.notificationService.setMessageChange(
             Message.error('Ocurrió un error al procesar la operación', error)
           );
-          this.isLoading = false;
           return EMPTY;
         }),
         switchMap(() => this.credentialService.getAllByNamespaceZrn(this.data.namespace.zrn)),
@@ -144,12 +143,13 @@ export class CredentialEditionDialogComponent {
           this.notificationService.setMessageChange(
             Message.error('Ocurrió un error al obtener las credenciales', error)
           );
-          this.isLoading = false;
           return EMPTY;
+        }),
+        finalize(() => {
+          this.isLoading = false
         })
       )
-      .subscribe({
-        next: (response) => {
+      .subscribe((response) => {
           if (response.success) {
             this.credentialService.setChangeObject(response.data);
             this.notificationService.setMessageChange(
@@ -161,14 +161,6 @@ export class CredentialEditionDialogComponent {
               Message.error('Error al procesar la credencial', response.message)
             );
           }
-          this.isLoading = false;
-        },
-        error: (error) => {
-          this.notificationService.setMessageChange(
-            Message.error('Ocurrió un error al procesar la credencial', error)
-          );
-          this.isLoading = false;
-        }
       });
   }
 

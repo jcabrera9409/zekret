@@ -7,6 +7,7 @@ import { UtilMethods } from '../../util/util';
 import { LoaderComponent } from "../../shared/loader/loader.component";
 import { Message } from '../../_model/message';
 import { NotificationService } from '../../_service/notification.service';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -46,20 +47,18 @@ export class LoginComponent {
         this.isLoading = true;
         const email = this.loginForm.value.email;
         const password = this.loginForm.value.password;
-        this.authService.login(email, password).subscribe({
-          next: (response) => {
-            this.isLoading = false;
-            UtilMethods.setJwtToken(response.data.access_token);
-            this.router.navigate([UtilMethods.getUsernameFieldJwtToken()]);
-          },
-          error: (error) => {
-            this.isLoading = false;
-            this.notificationService.setMessageChange(
-              Message.error('Credenciales incorrectas. Por favor, intente de nuevo.', error)
-            );
-          }
-        });
-
+        this.authService.login(email, password)
+          .pipe(
+            finalize(() => {
+              this.isLoading = false;
+            })
+          )
+          .subscribe({
+            next: (response) => {
+              UtilMethods.setJwtToken(response.data.access_token);
+              this.router.navigate([UtilMethods.getUsernameFieldJwtToken()]);
+            }
+          });
       } else {
         this.notificationService.setMessageChange(
           Message.error('Por favor, complete todos los campos requeridos correctamente.')

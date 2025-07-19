@@ -7,7 +7,8 @@ import { routes } from './app.routes';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { UtilMethods } from './util/util';
 import { environment } from '../environments/environment.development';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
+import { errorInterceptor } from './interceptors/error.interceptor';
 
 const jwtConfig = {
   config: {
@@ -24,6 +25,7 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(
       withInterceptorsFromDi(),
+      withInterceptors([errorInterceptor])
     ),
     provideRouter(routes), 
     provideAnimationsAsync()]

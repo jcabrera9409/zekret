@@ -11,6 +11,7 @@ import { ConfirmDeleteDataDTO } from '../../../_model/dto';
 import { LoaderComponent } from "../../../shared/loader/loader.component";
 import { NotificationService } from '../../../_service/notification.service';
 import { Message } from '../../../_model/message';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-credentials',
@@ -36,17 +37,12 @@ export class CredentialsComponent implements OnChanges, OnInit {
     this.credentialService.getChangeObject().subscribe({
       next: () => {
         this.getAllCredentials();
-      }, error: (error) => {
-        console.error('Error updating credentials:', error);
       }
     });
 
     this.credentialService.getChangeObjectDelete().subscribe({
       next: () => {
         this.getAllCredentials();
-      }
-      , error: (error) => {
-        console.error('Error deleting credential:', error);
       }
     });
   }
@@ -58,16 +54,15 @@ export class CredentialsComponent implements OnChanges, OnInit {
     }
     this.isLoading = true;
 
-    this.credentialService.getAllByNamespaceZrn(this.selectedNamespace.zrn).subscribe({
-      next: (data) => {
+    this.credentialService.getAllByNamespaceZrn(this.selectedNamespace.zrn)
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe((data) => {
         this.currentCredentials = data.data;
-        this.isLoading = false;
-      }, error: (error) => {
-        console.error('Error fetching credentials:', error);
-        this.currentCredentials = [];
-        this.isLoading = false;
-      }
-    });
+      })
   }
 
   ngOnChanges() {
@@ -115,8 +110,13 @@ export class CredentialsComponent implements OnChanges, OnInit {
 
   private confirmDeleteNamespace(credencial: Credential) {
     this.isLoading = true;
-    this.credentialService.deleteByZrn(credencial.zrn).subscribe({
-      next: (response) => {
+    this.credentialService.deleteByZrn(credencial.zrn)
+      .pipe(
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe((response) => {
         if (response.success) {
           this.credentialService.setChangeObjectDelete(credencial);
           this.notificationService.setMessageChange(
@@ -124,17 +124,10 @@ export class CredentialsComponent implements OnChanges, OnInit {
           );
         } else {
           this.notificationService.setMessageChange(
-            Message.error('Error al eliminar la credencial', response.message)
+            Message.error('Error al eliminar la credencial', response)
           );
         }
-        this.isLoading = false;
-      }, error: (error) => {
-        this.notificationService.setMessageChange(
-          Message.error('Ocurrió un error al eliminar la credencial', error)
-        );
-        this.isLoading = false;
-      }
-    });
+      });
   }
 
 }

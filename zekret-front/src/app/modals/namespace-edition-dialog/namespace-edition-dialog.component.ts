@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Namespace } from '../../_model/namespace';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NamespaceService } from '../../_service/namespace.service';
-import { catchError, EMPTY, switchMap } from 'rxjs';
+import { catchError, EMPTY, finalize, switchMap } from 'rxjs';
 import { Message } from '../../_model/message';
 import { LoaderComponent } from "../../shared/loader/loader.component";
 import { NotificationService } from '../../_service/notification.service';
@@ -61,7 +61,6 @@ export class NamespaceEditionDialogComponent {
           this.notificationService.setMessageChange(
             Message.error('Ocurrió un error al procesar la operación', error)
           );
-          this.isLoading = false;
           return EMPTY;
         }),
         switchMap(() => this.namespaceService.getAll()),
@@ -69,13 +68,14 @@ export class NamespaceEditionDialogComponent {
           this.notificationService.setMessageChange(
             Message.error('Ocurrió un error al obtener los namespaces', error)
           );
-          this.isLoading = false;
           return EMPTY;
+        }),
+        finalize(() => {
+          this.isLoading = false;
         })
       )
-      .subscribe({
-        next: (response) => {
-          if (response.success) {
+      .subscribe((response) =>{
+        if (response.success) {
             this.namespaceService.setChangeObject(response.data);
             this.notificationService.setMessageChange(
               Message.success('Namespace procesado correctamente')
@@ -86,14 +86,6 @@ export class NamespaceEditionDialogComponent {
               Message.error('Error al procesar el namespace', response.message)
             );
           }
-          this.isLoading = false;
-        },
-        error: (error) => {
-          this.notificationService.setMessageChange(
-            Message.error('Ocurrió un error al procesar el namespace', error)
-          );
-          this.isLoading = false;
-        }
       });
 
   }

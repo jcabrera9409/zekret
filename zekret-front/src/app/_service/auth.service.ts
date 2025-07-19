@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment.development';
 import { User } from '../_model/user';
 import { APIResponseDTO, AuthenticationResponseDTO } from '../_model/dto';
 import { UtilMethods } from '../util/util';
+import { finalize } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -33,16 +34,11 @@ export class AuthService {
   }
 
   logout() {
-    this.http.get(`${environment.apiUrl}/logout`).subscribe({
-      next: () => {
+    this.http.get(`${environment.apiUrl}/auth/logout`)
+      .subscribe(() => {
         localStorage.clear();
         this.router.navigate(['login']);
-      },
-      error: (error) => {
-        console.error('Error during logout:', error);
-        localStorage.clear();
-        this.router.navigate(['login']);
-      }
-    })
+      })
+
   }
 }
