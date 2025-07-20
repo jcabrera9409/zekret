@@ -14,10 +14,10 @@ services:
     image: jcabrera9409/zekret-back:latest
     restart: on-failure
     environment:
-      DATASOURCE_BD:                        jdbc:mysql://bd:3306/zekretdb
-      USER_BD:                              $USER_BD
-      PASSWORD_BD:                          $PASSWORD_BD
-      JWT_SECRET_KEY:                       ${JWT_SECRET_KEY}
+      DATASOURCE_BD:    jdbc:mysql://bd:3306/zekretdb
+      USER_BD:          $USER_BD
+      PASSWORD_BD:      $PASSWORD_BD
+      JWT_SECRET_KEY:   $JWT_SECRET_KEY
     depends_on:
       - bd
     volumes:
@@ -34,15 +34,3 @@ services:
     volumes:
       - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./configs/nginx/conf.d:/etc/nginx/conf.d:ro
-
-  #nginx:
-  #  image: nginx:1.25-alpine
-  #  ports:
-  #    - "80:80"
-  #  volumes:
-  #    - ./configs/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #    - ./configs/nginx/conf.d:/etc/nginx/conf.d:ro
-  #  depends_on:
-  #    - front
-  #    - back
-  #  restart: on-failure

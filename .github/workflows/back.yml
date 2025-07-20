@@ -1,0 +1,82 @@
+name: Pipeline For Zekret Back Project
+
+on: 
+  push:
+    paths: ['zekret-back/src/**', 'zekret-back/pom.xml', 'zekret-back/Dockerfile', '.github/workflows/back.yml']
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - name: Download Maven dependencies
+        run: | 
+          cd zekret-back 
+          mvn dependency:go-offline
+
+  verify:
+    needs: dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+      - name: Build with 'maven'
+        run: |
+          cd zekret-back
+          mvn -B verify --file pom.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: target
+
+  trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: 'zekret-back/'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+  
+  dockerize-and-push:
+    needs: [trivy, verify]
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./zekret-back
+          file: ./zekret-back/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/zekret-back:latest
