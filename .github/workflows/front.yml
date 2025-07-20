@@ -87,3 +87,6 @@ jobs:
           file: ./zekret-front/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/zekret-front:latest
+          build-args: |
+            HOST=${{ secrets.HOST }}
+            DOMAIN=${{ secrets.DOMAIN }}
