@@ -103,7 +103,7 @@ export class CredentialsComponent implements OnChanges, OnInit {
 
   onCredentialClick(credential: Credential) {
     this.dialog.open(CredentialDetailDialogComponent, {
-      width: '500px',
+      width: '700px',
       data: credential
     });
   }
