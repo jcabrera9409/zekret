@@ -80,6 +80,11 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Print masked debug info
+        run: |
+          echo "HOST is set" && echo "${{ secrets.PRD_HOST }}" | sed 's/./*/g'
+          echo "DOMAIN is set" && echo "${{ secrets.PRD_DOMAIN }}" | sed 's/./*/g'
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -88,5 +93,5 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/zekret-front:latest
           build-args: |
-            HOST=${{ secrets.HOST }}
-            DOMAIN=${{ secrets.DOMAIN }}
+            HOST=${{ secrets.PRD_HOST }}
+            DOMAIN=${{ secrets.PRD_DOMAIN }}
