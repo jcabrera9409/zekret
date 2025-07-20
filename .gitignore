@@ -34,3 +34,7 @@ yarn-error.log*
 .mvn
 .gitattributes
 .env
+configs/
+files/
+logs/
+mysql-data
