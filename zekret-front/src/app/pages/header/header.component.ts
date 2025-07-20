@@ -17,13 +17,14 @@ export class HeaderComponent implements OnInit{
 
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private utilMethods: UtilMethods
   ) {
 
   }
 
   ngOnInit(): void {
-    this.username = UtilMethods.getUsernameFieldJwtToken();
+    this.username = this.utilMethods.getUsernameFieldJwtToken();
   }
 
   isUserMenuOpen: boolean = false;

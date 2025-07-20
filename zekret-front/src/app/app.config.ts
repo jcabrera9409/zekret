@@ -5,28 +5,33 @@ import { JwtModule } from '@auth0/angular-jwt';
 
 import { routes } from './app.routes';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { UtilMethods } from './util/util';
-import { environment } from '../environments/environment.development';
 import { provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
 import { errorInterceptor } from './interceptors/error.interceptor';
 
-const jwtConfig = {
-  config: {
-    tokenGetter: UtilMethods.getJwtToken,
-    allowedDomains: environment.domains,
-    disallowedRoutes: environment.disallowedRoutes
-  }
+// Token getter function para JWT usando localStorage directamente
+export function jwtTokenGetter(): string {
+  return localStorage.getItem('access_token') || '';
 }
 
 export const appConfig: ApplicationConfig = {
   providers: [
     importProvidersFrom(
-      JwtModule.forRoot(jwtConfig),
+      JwtModule.forRoot({
+        config: {
+          tokenGetter: jwtTokenGetter,
+          allowedDomains: ['localhost:8080'],
+          disallowedRoutes: [
+            'http://localhost:8080/v1/auth/login',
+            'http://localhost:8080/v1/users/register'
+          ]
+        }
+      })
     ),
     provideHttpClient(
       withInterceptorsFromDi(),
       withInterceptors([errorInterceptor])
     ),
     provideRouter(routes), 
-    provideAnimationsAsync()]
+    provideAnimationsAsync()
+  ]
 };

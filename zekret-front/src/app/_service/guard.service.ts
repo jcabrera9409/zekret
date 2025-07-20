@@ -5,13 +5,14 @@ import { UtilMethods } from "../util/util";
 
 export const authGuard = (): Observable<boolean> | boolean => {
     const authService = inject(AuthService);
+    const utilMethods = inject(UtilMethods);
 
     if (!authService.isLogged()) {
         authService.logout();
         return false;
     }
     else {
-        if (!UtilMethods.isTokenExpired()) {
+        if (!utilMethods.isTokenExpired()) {
             return true;
         } else {
             authService.logout();

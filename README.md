@@ -28,6 +28,7 @@ Este repositorio contiene dos proyectos principales: **Zekret Backend** y **Zekr
 - **Estilo**: TailwindCSS + Angular Material
 - **Autenticación**: JWT con @auth0/angular-jwt
 - **Build Tool**: Angular CLI 17.3.11
+- **Arquitectura Mejorada**: EnvService para configuración centralizada y dinámica
 - **Dependencias Clave**:
   - Angular Material 17.3.10 (UI Components)
   - Angular CDK 17.3.10 (Component Development Kit)
@@ -36,6 +37,11 @@ Este repositorio contiene dos proyectos principales: **Zekret Backend** y **Zekr
   - Zone.js 0.14.3 (Change Detection)
   - PostCSS + Autoprefixer
   - Karma + Jasmine (Testing)
+- **Mejoras Recientes**:
+  - UtilMethods convertido a servicio injectable
+  - Configuración runtime con env.js para deployments flexibles
+  - Validación de archivos con regex pattern
+  - Resolución de errores de inyección de dependencias
 
 ## 🏗️ Arquitectura
 
@@ -96,6 +102,7 @@ src/
 │   │   ├── credential.service.ts # CRUD completo de credenciales
 │   │   ├── notification.service.ts # Sistema de notificaciones reactivo
 │   │   ├── error.service.ts      # Manejo centralizado de errores HTTP
+│   │   ├── env.service.ts        # Configuración centralizada y dinámica (NUEVO)
 │   │   └── generic.service.ts    # Servicio genérico CRUD reactivo
 │   ├── interceptors/     # Interceptores HTTP
 │   │   └── error.interceptor.ts  # Interceptor global de errores HTTP
@@ -165,7 +172,9 @@ src/
 - **Indicadores de Carga**: Estados visuales para operaciones asíncronas con RxJS.
 - **Interceptor Global**: ErrorInterceptor para manejo centralizado de errores HTTP.
 - **Comunicación Reactiva**: Observables para actualizaciones automáticas cross-component.
-- **Configuración de Entornos**: Environments para desarrollo y producción.
+- **Configuración Centralizada**: EnvService para deployment flexible sin rebuilds.
+- **Validación de Archivos**: Regex pattern para nombres de credenciales seguros.
+- **Inyección de Dependencias Moderna**: Servicios injectables con patrón moderno de Angular.
 - **Routing Avanzado**: Guards, lazy loading y protección de rutas.
 
 ## 💾 Modelo de Datos
@@ -220,6 +229,9 @@ cd zekret-front
 # Instalar dependencias
 npm install
 
+# Configurar entorno (opcional - ya tiene defaults)
+# Editar src/assets/env.js para configuración específica
+
 # Ejecutar en desarrollo
 npm start
 # o
@@ -229,6 +241,21 @@ ng serve
 npm run build
 # o
 ng build --configuration production
+```
+
+### Configuración de Entorno Frontend
+```javascript
+// src/assets/env.js - Configuración runtime
+window.__env = {
+  production: false,
+  apiUrl: 'http://localhost:8080/v1',
+  token_name: 'access_token',
+  domains: ['localhost:8080'],
+  disallowedRoutes: [
+    'http://localhost:8080/v1/auth/login',
+    'http://localhost:8080/v1/users/register'
+  ]
+};
 ```
 
 ### Base de Datos
@@ -380,6 +407,10 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 - [x] Validaciones dinámicas
 - [x] Interceptores HTTP
 - [x] Responsive design
+- [x] Configuración centralizada con EnvService
+- [x] Validación de archivos con regex pattern
+- [x] Inyección de dependencias moderna
+- [x] Refactorización arquitectónica completa
 
 ### En Desarrollo 🚧
 - [ ] Tests automatizados
@@ -389,4 +420,6 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 ---
 
 **Desarrollado por:** [jcabrera9409](https://github.com/jcabrera9409)  
-**Última actualización:** Julio 2025
+**Última actualización:** Julio 2025  
+**Versión Frontend:** 0.0.0 con mejoras arquitectónicas recientes  
+**Versión Backend:** 0.0.1-SNAPSHOT completamente funcional

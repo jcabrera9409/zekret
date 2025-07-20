@@ -1,10 +1,13 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
-import { environment } from './environments/environment.development';
 import { enableProdMode } from '@angular/core';
+import { EnvService } from './app/_service/env.service';
 
-if (environment.production) {
+// Crear instancia de EnvService para verificar modo producción
+const envService = new EnvService();
+
+if (envService.isProduction()) {
   enableProdMode();
 }
 

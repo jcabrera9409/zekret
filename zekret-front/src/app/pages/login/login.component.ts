@@ -30,6 +30,7 @@ export class LoginComponent {
     private notificationService: NotificationService,
     private renderer: Renderer2,
     private router: Router,
+    private utilMethods: UtilMethods
   ) {
     this.loginForm = new FormGroup({
       email: new FormControl('', [Validators.required]),
@@ -66,8 +67,8 @@ export class LoginComponent {
         )
         .subscribe({
           next: (response) => {
-            UtilMethods.setJwtToken(response.data.access_token);
-            this.router.navigate([UtilMethods.getUsernameFieldJwtToken()]);
+            this.utilMethods.setJwtToken(response.data.access_token);
+            this.router.navigate([this.utilMethods.getUsernameFieldJwtToken()]);
           }
         });
 

@@ -29,6 +29,12 @@ Aplicación frontend para el sistema de gestión de credenciales Zekret, desarro
 - **@auth0/angular-jwt**: ^5.2.0 - ✅ JWT Authentication completamente funcional
 - **Zone.js**: ~0.14.3 - ✅ Angular change detection
 
+### Arquitectura Mejorada - **Recién Implementada**
+- **EnvService**: ✅ Configuración centralizada y dinámica
+- **Inyección de Dependencias**: ✅ UtilMethods convertido a servicio injectable
+- **Configuración Runtime**: ✅ env.js para deployment flexible
+- **Validación de Archivos**: ✅ Regex pattern para nombres de credenciales
+
 ### Herramientas de Desarrollo
 - **Angular CLI**: ^17.3.11 - ✅ Configurado y optimizado
 - **Angular DevKit Build Angular**: ^17.3.17 - ✅ Build system
@@ -68,6 +74,7 @@ src/
 │   │   ├── guard.service.ts      # ✅ Guards de autenticación
 │   │   ├── notification.service.ts # ✅ Sistema de notificaciones (NUEVO)
 │   │   ├── error.service.ts      # ✅ Manejo centralizado de errores HTTP (NUEVO)
+│   │   ├── env.service.ts        # ✅ Configuración centralizada y dinámica (NUEVO)
 │   │   └── generic.service.ts    # ✅ Servicio genérico CRUD reactivo
 │   ├── interceptors/     # ✅ Interceptores HTTP (NUEVO)
 │   │   └── error.interceptor.ts  # ✅ Interceptor global de errores HTTP
@@ -75,7 +82,7 @@ src/
 │   │   ├── loader/       # ✅ Componente de carga
 │   │   └── notification/ # ✅ Sistema de notificaciones avanzado (NUEVO)
 │   ├── util/             # ✅ Utilidades y helpers
-│   │   └── util.ts       # ✅ JWT utilities y métodos helper
+│   │   └── util.ts       # ✅ Servicio injectable JWT utilities (REFACTORIZADO)
 │   ├── modals/           # ✅ Componentes de diálogos/modales (100% funcionales)
 │   │   ├── confirm-delete-dialog/      # ✅ Confirmación con validación
 │   │   ├── credential-detail-dialog/   # ✅ Visualización de credenciales
@@ -88,29 +95,31 @@ src/
 │   │   ├── namespace/    # ✅ Gestión completa de namespaces y credenciales
 │   │   └── stats-namespace/  # ✅ Estadísticas de namespaces
 │   ├── app.component.*   # ✅ Componente raíz con notificaciones
-│   ├── app.config.ts     # ✅ Configuración JWT y HTTP interceptors
+│   ├── app.config.ts     # ✅ Configuración JWT y HTTP interceptors (MEJORADO)
 │   └── app.routes.ts     # ✅ Rutas protegidas con guards
-├── environments/         # ⚠️ Configuraciones por ambiente (producción pendiente)
 ├── assets/               # ✅ Recursos estáticos
+│   └── env.js           # ✅ Configuración dinámica de entornos (NUEVO)
 ├── custom-theme.scss     # ✅ Tema personalizado de Angular Material
 ├── styles.css           # ✅ Estilos globales con variables CSS personalizadas
-└── main.ts              # ✅ Punto de entrada de la aplicación
+└── main.ts              # ✅ Punto de entrada de la aplicación (MEJORADO)
 ```
 
 ## 🔐 Sistema de Autenticación COMPLETO
 
-### JWT Implementation
+### JWT Implementation con EnvService
 - **JWT Helper**: @auth0/angular-jwt para manejo de tokens
-- **Token Storage**: LocalStorage con configuración de dominio
+- **Configuración Dinámica**: EnvService para configuración centralizada
+- **Token Storage**: LocalStorage con configuración flexible
 - **Auth Guards**: Función `authGuard` para protección de rutas
-- **Token Validation**: Métodos utilitarios para validación y extracción de datos
+- **Token Validation**: UtilMethods como servicio injectable con EnvService
 
 ### Guard de Autenticación
 ```typescript
 // guard.service.ts - Función guard moderna
 export const authGuard = (): Observable<boolean> | boolean => {
   const authService = inject(AuthService);
-  if (!authService.isLogged() || UtilMethods.isTokenExpired()) {
+  const utilMethods = inject(UtilMethods); // Ahora es servicio injectable
+  if (!authService.isLogged() || utilMethods.isTokenExpired()) {
     authService.logout();
     return false;
   }
@@ -118,18 +127,48 @@ export const authGuard = (): Observable<boolean> | boolean => {
 }
 ```
 
-### Configuración de Seguridad
-```typescript
-// environment.development.ts
-{
+### Configuración Dinámica de Entornos
+```javascript
+// assets/env.js - Configuración runtime
+window.__env = {
+  production: false,
   apiUrl: 'http://localhost:8080/v1',
   token_name: 'access_token', 
   domains: ['localhost:8080'],
-  disallowedRoutes: [...]
+  disallowedRoutes: [
+    'http://localhost:8080/v1/auth/login',
+    'http://localhost:8080/v1/users/register'
+  ]
+};
+```
+
+### EnvService - Configuración Centralizada
+```typescript
+// env.service.ts - Servicio de configuración
+@Injectable({ providedIn: 'root' })
+export class EnvService {
+  isProduction(): boolean
+  getApiUrl(): string
+  getTokenName(): string
+  getDomains(): string[]
+  getDisallowedRoutes(): string[]
 }
 ```
 
 ## 🚀 **MEJORAS AVANZADAS IMPLEMENTADAS - 100% OPERATIVAS**
+
+### ✅ **Refactorización Arquitectónica Reciente (COMPLETADO)**
+- ✅ **UtilMethods como Servicio**: Convertido de clase estática a servicio injectable
+- ✅ **Integración EnvService**: Configuración centralizada en lugar de valores hardcodeados
+- ✅ **Configuración Dinámica**: Archivo `env.js` para deployment flexible sin rebuilds
+- ✅ **Inyección de Dependencias**: Patrón moderno de Angular con `inject()`
+- ✅ **Resolución de Errores**: Solucionado NG0203 (injection context) en app.config.ts
+
+### ✅ **Sistema de Validación de Archivos (COMPLETADO)**
+- ✅ **Regex Pattern**: `/^[a-zA-Z0-9._-]+$/` para nombres de credenciales
+- ✅ **Validación Frontend**: Implementada en credential-type.ts
+- ✅ **Caracteres Permitidos**: Alfanuméricos, puntos, guiones y underscores
+- ✅ **Prevención de Errores**: Validación antes de envío al backend
 
 ### ✅ **Interceptor HTTP Global Implementado (COMPLETADO)**
 - ✅ **ErrorInterceptor**: Función interceptor Angular 17 registrada globalmente  
@@ -771,10 +810,37 @@ export interface ConfirmDeleteDataDTO {  // NUEVO: Para modales de confirmación
 
 1. **Sistema de Autenticación Robusto**: JWT completo con guards, validación y manejo de sesiones
 2. **CRUD de Namespaces 100% Funcional**: Desde UI hasta API, todo operativo
-3. **✅ NUEVO: CRUD de Credenciales 100% Funcional**: Completamente implementado y operativo
+3. **✅ CRUD de Credenciales 100% Funcional**: Completamente implementado y operativo
 4. **Sistema de Modales Avanzado**: Confirmaciones, edición y visualización completamente implementados
 5. **Arquitectura de Servicios Sólida**: `GenericService` como base reutilizable con observables reactivos
 6. **UX Pulida**: Navegación automática, comunicación entre componentes, estados compartidos
+7. **✅ NUEVO: Configuración Centralizada**: EnvService para deployment flexible
+8. **✅ NUEVO: Validación de Archivos**: Regex pattern para nombres de credenciales
+9. **✅ NUEVO: Inyección de Dependencias Mejorada**: UtilMethods como servicio injectable
+
+### 🏗️ **MEJORAS ARQUITECTÓNICAS RECIENTES IMPLEMENTADAS**
+
+**✅ EnvService - Configuración Centralizada**:
+- Reemplaza imports estáticos de environment
+- Configuración dinámica desde `assets/env.js`
+- Soporte para deployments containerizados
+- Métodos: `isProduction()`, `getApiUrl()`, `getTokenName()`
+
+**✅ UtilMethods Refactorizado**:
+- Convertido de clase estática a servicio injectable
+- Integrado con EnvService para configuración dinámica
+- Mejor testabilidad y mantenibilidad
+- Inyección moderna con `inject()`
+
+**✅ Configuración de Aplicación Mejorada**:
+- `main.ts` usa `EnvService.isProduction()` 
+- `app.config.ts` simplificado para evitar errores de contexto
+- JWT configuration optimizada
+
+**✅ Validación de Archivos Implementada**:
+- Pattern regex: `/^[a-zA-Z0-9._-]+$/`
+- Prevención de caracteres especiales problemáticos
+- Validación en frontend antes de envío
 
 ### � **BLOQUEADOR CRÍTICO RESUELTO**
 
@@ -790,6 +856,27 @@ export interface ConfirmDeleteDataDTO {  // NUEVO: Para modales de confirmación
 - **UI/UX**: **100% completo** ✅
 - **Integración Backend**: **100% completo** ✅
 - **Arquitectura**: **100% completo** ✅
+- **✅ NUEVO: Configuración Centralizada**: **100% completo** ✅
+- **✅ NUEVO: Validación de Archivos**: **100% completo** ✅
+- **✅ NUEVO: Inyección de Dependencias**: **100% completo** ✅
+
+### 🔧 **Archivos Modificados en Última Actualización**
+
+**Servicios Refactorizados:**
+- ✅ `src/app/util/util.ts` - Convertido a servicio injectable
+- ✅ `src/app/_service/env.service.ts` - Configuración centralizada
+- ✅ `src/app/_model/credential-type.ts` - Validación de archivos
+
+**Configuración Mejorada:**
+- ✅ `src/main.ts` - Usa EnvService para production mode
+- ✅ `src/app/app.config.ts` - JWT config simplificada
+- ✅ `src/assets/env.js` - Configuración runtime
+
+**Componentes Actualizados:**
+- ✅ `src/app/pages/login/login.component.ts`
+- ✅ `src/app/pages/header/header.component.ts`
+- ✅ `src/app/modals/credential-detail-dialog/credential-detail-dialog.component.ts`
+- ✅ `src/app/modals/credential-edition-dialog/credential-edition-dialog.component.ts`
 
 ### 🏆 **SISTEMA COMPLETAMENTE FUNCIONAL**
 

@@ -1,18 +1,25 @@
+import { Injectable } from "@angular/core";
 import { JwtHelperService } from "@auth0/angular-jwt";
-import { environment } from "../../environments/environment.development";
+import { EnvService } from "../_service/env.service";
 
+@Injectable({
+    providedIn: 'root'
+})
 export class UtilMethods {
-    public static getJwtToken(): string {
-        let token = localStorage.getItem(environment.token_name);
+
+    constructor(private envService: EnvService) {}
+
+    public getJwtToken(): string {
+        let token = localStorage.getItem(this.envService.getTokenName());
         return token;
     }
 
-    public static getUsernameFieldJwtToken(): string {
+    public getUsernameFieldJwtToken(): string {
         const username = this.getFieldJwtToken('username');
         return username ? username : '';
     }
 
-    public static getFieldJwtToken(field: string): string {
+    public getFieldJwtToken(field: string): string {
         const decodeToken = this.getDecodedJwtToken();
         if (decodeToken) {
             if (field in decodeToken) {
@@ -25,19 +32,19 @@ export class UtilMethods {
         }
     }
 
-    public static isTokenExpired(): boolean {
+    public isTokenExpired(): boolean {
         const helper = this.getHelper();
         let token = this.getJwtToken();
 
         return helper.isTokenExpired(token);
     }
 
-    private static getDecodedJwtToken(): any {
+    private getDecodedJwtToken(): any {
         let token = this.getJwtToken();
         return this.extractJwtPayload(token);
     }
 
-     private static extractJwtPayload(token: string): any {
+     private extractJwtPayload(token: string): any {
         if (!token) {
             return null;
         }
@@ -57,15 +64,21 @@ export class UtilMethods {
         }
     }
 
-    public static getHelper(): JwtHelperService {
+    public getHelper(): JwtHelperService {
         return new JwtHelperService();
     }
 
-    public static setJwtToken(token: string): void {
-        localStorage.setItem(environment.token_name, token);
+    public setJwtToken(token: string): void {
+        localStorage.setItem(this.envService.getTokenName(), token);
     }
 
-    public static removeJwtToken(): void {
-        localStorage.removeItem(environment.token_name);
+    public removeJwtToken(): void {
+        localStorage.removeItem(this.envService.getTokenName());
+    }
+
+    // Métodos estáticos para compatibilidad hacia atrás (opcional)
+    public static getInstance(): UtilMethods {
+        // Este método requiere que se inyecte el servicio donde se use
+        throw new Error('Use dependency injection instead of static methods');
     }
 }
