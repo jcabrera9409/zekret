@@ -21,6 +21,6 @@ RUN echo "(function (window) {" > /app/src/assets/env.js && \
 
 RUN npm ci && npx ng build
 
-FROM nginx:1.25-alpine
+FROM nginx:1.27-alpine
 COPY --from=builder /app/dist/zekret-front/browser/ /usr/share/nginx/html
 EXPOSE 80
