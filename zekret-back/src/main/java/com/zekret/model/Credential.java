@@ -39,6 +39,9 @@ public class Credential {
 	private String password;
 	
 	@Column(nullable = true, columnDefinition = "TEXT")
+	private String sshPublicKey;
+
+	@Column(nullable = true, columnDefinition = "TEXT")
 	private String sshPrivateKey;
 	
 	@Column(nullable = true)
@@ -115,6 +118,14 @@ public class Credential {
 
 	public void setPassword(String password) {
 		this.password = password;
+	}
+
+	public String getSshPublicKey() {
+		return sshPublicKey;
+	}
+
+	public void setSshPublicKey(String sshPublicKey) {
+		this.sshPublicKey = sshPublicKey;
 	}
 
 	public String getSshPrivateKey() {

@@ -6,6 +6,7 @@ export class Credential {
     zrn: string;
     username: string;
     password: string;
+    sshPublicKey: string;
     sshPrivateKey: string;
     secretText: string;
     fileName: string;

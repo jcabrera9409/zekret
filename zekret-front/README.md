@@ -20,15 +20,32 @@ Aplicación frontend para el sistema de gestión de credenciales Zekret, desarro
 - **Angular Core**: ^17.3.0 - ✅ Framework principal
 - **Angular Material**: ^17.3.10 - ✅ Componentes UI (Dialogs, Forms, Icons)
 - **Angular CDK**: ^17.3.10 - ✅ Component Development Kit
+- **Angular Animations**: ^17.3.0 - ✅ Animaciones para Material
+- **Angular Forms**: ^17.3.0 - ✅ Reactive Forms implementadas
+- **Angular Router**: ^17.3.0 - ✅ Routing con guards
 - **TailwindCSS**: ^3.4.17 - ✅ Utility-first CSS con tema personalizado
 - **RxJS**: ~7.8.0 - ✅ Observables para estado reactivo
 - **TypeScript**: ~5.4.2 - ✅ Tipado fuerte implementado
 - **@auth0/angular-jwt**: ^5.2.0 - ✅ JWT Authentication completamente funcional
+- **Zone.js**: ~0.14.3 - ✅ Angular change detection
 
 ### Herramientas de Desarrollo
 - **Angular CLI**: ^17.3.11 - ✅ Configurado y optimizado
+- **Angular DevKit Build Angular**: ^17.3.17 - ✅ Build system
 - **Karma + Jasmine**: Testing framework (pendiente de implementación)
 - **PostCSS + Autoprefixer**: ✅ CSS processing configurado
+- **Angular Compiler CLI**: ^17.3.0 - ✅ Compilación AOT
+
+### Scripts NPM Configurados
+```json
+{
+  "ng": "ng",
+  "start": "ng serve",
+  "build": "ng build", 
+  "watch": "ng build --watch --configuration development",
+  "test": "ng test"
+}
+```
 
 ## 🏗️ Arquitectura del Proyecto
 
@@ -38,11 +55,11 @@ src/
 ├── app/
 │   ├── _model/           # ✅ Modelos y tipos de datos
 │   │   ├── user.ts       # ✅ Modelo de usuario
-│   │   ├── credential.ts # ✅ Modelo de credenciales (completo)
+│   │   ├── credential.ts # ✅ Modelo de credenciales (completo con sshPublicKey)
 │   │   ├── namespace.ts  # ✅ Modelo de namespaces
 │   │   ├── dto.ts        # ✅ DTOs para API responses
 │   │   ├── message.ts    # ✅ Modelo para notificaciones (4 tipos)
-│   │   └── credential-type.ts # ✅ Tipos de credenciales
+│   │   └── credential-type.ts # ✅ Tipos de credenciales con validaciones dinámicas
 │   ├── _service/         # ✅ Servicios de la aplicación (100% implementados)
 │   │   ├── auth.service.ts       # ✅ Autenticación JWT completa
 │   │   ├── user.service.ts       # ✅ Gestión de usuarios
@@ -230,7 +247,7 @@ export const authGuard = (): Observable<boolean> | boolean => {
 - **Backend Integrado**: Conectado completamente con endpoints de API REST
 - **Tipos de credenciales soportados**:
   - Username/Password
-  - SSH Private Key  
+  - SSH Username (con clave pública y privada) - **ACTUALIZADO**
   - Secret Text
   - File Content
 - **Características**:
@@ -624,6 +641,17 @@ export interface ConfirmDeleteDataDTO {  // NUEVO: Para modales de confirmación
 #### **Integración con Formularios Reactivos**
 - **Validación centralizada**: Todos los formularios utilizan métodos utilitarios para mantener consistencia.
 - **Feedback visual**: Indicadores visuales para errores en tiempo real.
+
+#### **Configuración de JWT y HTTP**
+- **app.config.ts**: Configuración centralizada con JWT Module y HTTP interceptors
+- **JWT Configuration**: Token getter automático con dominios permitidos
+- **HTTP Client**: Configurado con interceptores globales
+- **Error Interceptor**: Registrado globalmente para manejo de errores HTTP
+
+#### **Environments Configuration**
+- **environment.ts**: Configuración de producción
+- **environment.development.ts**: Configuración de desarrollo con API local
+- **Configuración dinámica**: URL de API, dominios JWT, rutas no permitidas
 
 ---
 

@@ -43,6 +43,7 @@ export class CredentialEditionDialogComponent {
       up_username: new FormControl(this.data.credential ? this.data.credential.username : '', [Validators.required]),
       up_password: new FormControl(this.data.credential ? this.data.credential.password : '', [Validators.required]),
 
+      ssh_public_key: new FormControl(this.data.credential ? this.data.credential.sshPublicKey : ''),
       ssh_private_key: new FormControl(this.data.credential ? this.data.credential.sshPrivateKey : ''),
 
       secret_text: new FormControl(this.data.credential ? this.data.credential.secretText : ''),
@@ -111,6 +112,7 @@ export class CredentialEditionDialogComponent {
         break;
       case 'ssh_username':
         credentialData.username = this.credentialForm.value.up_username;
+        credentialData.sshPublicKey = this.credentialForm.value.ssh_public_key;
         credentialData.sshPrivateKey = this.credentialForm.value.ssh_private_key;
         break;
       case 'secret_text':

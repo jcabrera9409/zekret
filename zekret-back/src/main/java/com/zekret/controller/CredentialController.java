@@ -147,6 +147,7 @@ public class CredentialController {
             existingCredential.setTitle(request.getTitle());
             existingCredential.setUsername(request.getUsername());
             existingCredential.setPassword(request.getPassword());
+            existingCredential.setSshPublicKey(request.getSshPublicKey());
             existingCredential.setSshPrivateKey(request.getSshPrivateKey());
             existingCredential.setSecretText(request.getSecretText());
             existingCredential.setFileName(request.getFileName());

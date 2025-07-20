@@ -11,12 +11,31 @@ Este proyecto es el backend para una aplicación web que permite a los usuarios 
 - **Spring Security** con autenticación JWT
 - **Spring Boot Actuator** para monitoreo y métricas
 - **Spring HATEOAS** para APIs REST con hipervínculos
-- **MySQL** como base de datos
+- **Spring Boot DevTools** para desarrollo (hot reload)
+- **MySQL** como base de datos con MySQL Connector/J
 - **Maven** para gestión de dependencias
 - **JPA/Hibernate** para ORM con timestamps automáticos
 - **Hibernate Annotations** para `@CreationTimestamp` y `@UpdateTimestamp`
 - **JJWT 0.12.3** para manejo de tokens JWT (api, impl, jackson)
 - **Jackson** para serialización JSON con control de acceso
+- **BCrypt** para encriptación de contraseñas
+- **SLF4J** para logging estructurado
+
+## Configuración del Proyecto
+
+### Variables de Entorno (.env)
+```properties
+DATASOURCE_BD=jdbc:mysql://localhost:3306/zekretdb
+USER_BD=root
+PASSWORD_BD=root
+JWT_SECRET_KEY=your_jwt_secret_key_here
+```
+
+### Configuración de Base de Datos
+- **Datasource URL**: Configurable via `DATASOURCE_BD`
+- **Usuario/Contraseña**: Configurables via `USER_BD`/`PASSWORD_BD`
+- **DDL Auto**: `update` (Hibernate actualiza schema automáticamente)
+- **Show SQL**: `false` (para producción)
 
 ## Arquitectura del Proyecto
 
@@ -104,6 +123,7 @@ src/main/java/com/zekret/
   - `zrn`: String (Zekret Resource Name, único) - `@JsonProperty(READ_ONLY)`
   - `username`: String (opcional)
   - `password`: String (opcional)
+  - `sshPublicKey`: TEXT (opcional) - **NUEVO CAMPO** para claves SSH públicas
   - `sshPrivateKey`: TEXT (opcional)
   - `secretText`: String (opcional)
   - `fileName`: String (opcional)
@@ -121,6 +141,7 @@ src/main/java/com/zekret/
   - **createdAt y updatedAt**: Incluidos en respuestas JSON (timestamps automáticos)
   - **credentialType**: Visible en requests y responses para permitir asignación por ZRN
   - **namespace**: Solo acepta datos en requests (WRITE_ONLY), no se incluye en responses para evitar referencia circular
+- **Campos TEXT**: `sshPublicKey`, `sshPrivateKey`, `fileContent`, `notes` usan columnDefinition = "TEXT" para contenido extenso
 - **Timestamps Automáticos**:
   - `createdAt`: Se establece automáticamente al crear la entidad (no actualizable)
   - `updatedAt`: Se actualiza automáticamente en cada modificación
