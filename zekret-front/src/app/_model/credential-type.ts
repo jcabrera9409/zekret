@@ -26,11 +26,11 @@ export const credentialType: { [key: string]: CredentialTypeDTO } = {
             },
             {
                 formControlName: 'ssh_public_key',
-                validator: [Validators.required],
+                validator: [],
             },
             {
                 formControlName: 'ssh_private_key',
-                validator: [],
+                validator: [Validators.required],
             }
         ]
     },
