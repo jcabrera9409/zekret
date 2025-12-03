@@ -34,7 +34,7 @@ public class AuthServiceImpl implements IAuthService {
     @Transactional
     public AuthResponseDTO authenticate(String username, String password) {
         LOG.infof("Authenticating user: %s", username);
-        User userExists = userRepository.findByEmailOrUsername(username)
+        User userExists = userRepository.findByEmailOrUsername(username, username)
             .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
 
         if(!userExists.isEnabled()) {
@@ -67,7 +67,7 @@ public class AuthServiceImpl implements IAuthService {
     @Transactional
     public void logout(String email) {
         LOG.infof("Logging out user with email: %s", email);
-        User user = userRepository.findByEmailOrUsername(email)
+        User user = userRepository.findByEmailOrUsername(email, email)
             .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
 
         tokenRepository.invalidateTokensByUserId(user.getId());

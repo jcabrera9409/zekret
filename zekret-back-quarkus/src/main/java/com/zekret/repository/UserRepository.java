@@ -17,9 +17,9 @@ public class UserRepository implements PanacheRepository<User> {
     /**
      * Find User by its email or username.
      */
-    public Optional<User> findByEmailOrUsername(String emailOrUsername) {
-        LOG.debugf("Finding User by email or username: %s", emailOrUsername);
-        return find("email = :emailOrUsername or username = :emailOrUsername", 
-            Parameters.with("emailOrUsername", emailOrUsername)).firstResultOptional();
+    public Optional<User> findByEmailOrUsername(String email, String username) {
+        LOG.debugf("Finding User by email or username: %s or %s", email, username);
+        return find("email = :email or username = :username", 
+            Parameters.with("email", email).and("username", username)).firstResultOptional();
     }
 }

@@ -29,8 +29,7 @@ public class JWTServiceImpl implements IJWTService {
             LOG.infof("Generating token for user: %s", user.getEmail());
 
             return Jwt.issuer(issuer)
-                    .upn(user.getEmail())  
-                    .subject(user.getEmail())
+                    .upn(user.getEmail())
                     .groups(Set.of("user"))
                     .expiresIn(Duration.ofSeconds(expirationTime))
                     .sign();

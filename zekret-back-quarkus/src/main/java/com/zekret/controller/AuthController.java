@@ -7,13 +7,16 @@ import com.zekret.dto.AuthResponseDTO;
 import com.zekret.service.IAuthService;
 
 import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("/v1/auth")
 @Produces(MediaType.APPLICATION_JSON)
@@ -38,8 +41,28 @@ public class AuthController {
         return Response.ok(APIResponseDTO.success(
             authResponse.message(),
             authResponse,
-            200
+            Response.Status.OK.getStatusCode()
         )).build();
     }
 
+    /**
+     * Endpoint for logout
+     */
+    @GET
+    @Path("/logout")
+    @RolesAllowed({"user"})
+    public Response logout(@Context SecurityContext securityContext) {
+        LOG.infof("Logout attempt for user: %s", securityContext.getUserPrincipal().getName());
+
+        String username = securityContext.getUserPrincipal().getName();
+        LOG.infof("Logout attempt for user: %s", username);
+
+        authService.logout(username);
+        
+        return Response.ok(APIResponseDTO.success(
+            "User logged out successfully",
+            null,
+            Response.Status.OK.getStatusCode()
+        )).build();
+    }
 }
