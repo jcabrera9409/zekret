@@ -59,10 +59,6 @@ public class AuthController {
 
         authService.logout(username);
         
-        return Response.ok(APIResponseDTO.success(
-            "User logged out successfully",
-            null,
-            Response.Status.OK.getStatusCode()
-        )).build();
+        return Response.ok().build();
     }
 }

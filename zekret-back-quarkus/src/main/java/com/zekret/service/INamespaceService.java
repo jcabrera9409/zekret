@@ -9,39 +9,39 @@ public interface INamespaceService {
     
     /**
      * Get all namespaces for a specific user
-     * @param userId The user ID to filter by
+     * @param userEmail The user email to filter by
      * @return List of namespaces belonging to the user
      */
-    List<NamespaceResponseDTO> getNamespacesByUserId(Long userId);
+    List<NamespaceResponseDTO> getNamespacesByUserEmail(String userEmail);
 
     /**
-     * Get a namespace by ZRN and user ID
+     * Get a namespace by ZRN and user email
      * @param zrn The ZRN identifier
-     * @param userId The user ID to filter by
+     * @param userEmail The user email to filter by
      * @return NamespaceResponseDTO if found, null otherwise
      */
-    NamespaceResponseDTO getNamespaceByZrnAndUserId(String zrn, Long userId);
+    NamespaceResponseDTO getNamespaceByZrnAndUserEmail(String zrn, String userEmail);
 
     /**
      * Register a new namespace for a user
-     * @param userId The user ID to associate the namespace with
+     * @param userEmail The user email to associate the namespace with
      * @param namespace The namespace to register
      * @return The registered NamespaceResponseDTO
      */
-    NamespaceResponseDTO registerNamespace(Long userId, NamespaceRequestDTO namespace);
-
+    NamespaceResponseDTO registerNamespace(String userEmail, NamespaceRequestDTO namespace);
     /**
      * Update an existing namespace for a user
-     * @param userId The user ID to associate the namespace with
+     * @param userEmail The user email to associate the namespace with
+     * @param zrn The ZRN identifier of the namespace to update
      * @param namespace The namespace to update
      * @return The updated NamespaceResponseDTO
      */
-    NamespaceResponseDTO updateNamespace(Long userId, NamespaceRequestDTO namespace);
+    NamespaceResponseDTO updateNamespace(String userEmail, String zrn, NamespaceRequestDTO namespace);
 
     /**
-     * Delete a namespace by ZRN and user ID
+     * Delete a namespace by ZRN and user email
      * @param zrn The ZRN identifier
-     * @param userId The user ID to filter by
+     * @param userEmail The user email to filter by
      */
-    void deleteNamespaceByZrnAndUserId(String zrn, Long userId);
+    void deleteNamespaceByZrnAndUserEmail(String zrn, String userEmail);
 }

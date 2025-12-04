@@ -2,6 +2,7 @@ package com.zekret.controller;
 
 import org.jboss.logging.Logger;
 
+import com.zekret.dto.APIResponseDTO;
 import com.zekret.dto.UserRequestDTO;
 import com.zekret.dto.UserResponseDTO;
 import com.zekret.service.IUserService;
@@ -33,7 +34,13 @@ public class UserController {
     public Response register(@Valid UserRequestDTO userRequest) {
         LOG.infof("Registering user: %s", userRequest.username());
         UserResponseDTO responseDTO = userService.register(userRequest);
-        return Response.status(Response.Status.CREATED).entity(responseDTO).build();
+        return Response.status(Response.Status.CREATED).entity(
+            APIResponseDTO.success(
+                "User registered successfully.",
+                responseDTO,
+                Response.Status.CREATED.getStatusCode()
+            )
+        ).build();
     }
 
 }

@@ -20,7 +20,7 @@ public class NamespaceRepository implements PanacheRepository<Namespace> {
      * @param userId The user ID to filter by
      * @return List of namespaces belonging to the user
      */
-    List<Namespace> findByUserId(Long userId) {
+    public List<Namespace> findByUserId(Long userId) {
         LOG.debugf("Finding namespaces for userId: %d", userId);
         return list("user.id", userId);
     }
@@ -31,7 +31,7 @@ public class NamespaceRepository implements PanacheRepository<Namespace> {
      * @param userId The user ID to filter by
      * @return Namespace if found, null otherwise
      */
-    Optional<Namespace> findByZrnAndUserId(String zrn, Long userId) {
+    public Optional<Namespace> findByZrnAndUserId(String zrn, Long userId) {
         LOG.debugf("Finding namespace for zrn: %s and userId: %d", zrn, userId);
         Optional<Namespace> namespace = find("zrn = :zrn and user.id = :userId", 
                     Parameters.with("zrn", zrn).and("userId", userId)).firstResultOptional();

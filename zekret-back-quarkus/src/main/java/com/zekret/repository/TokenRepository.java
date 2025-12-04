@@ -20,7 +20,7 @@ public class TokenRepository implements PanacheRepository<Token> {
      */
     public Optional<Token> findByAccessToken(String accessToken) {
         LOG.debugf("Finding Token by token string: %s", accessToken);
-        return find("access_token", accessToken).firstResultOptional();
+        return find("accessToken", accessToken).firstResultOptional();
     }
 
     /**
