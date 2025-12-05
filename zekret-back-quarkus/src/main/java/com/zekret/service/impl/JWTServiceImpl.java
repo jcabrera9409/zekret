@@ -6,6 +6,7 @@ import java.util.Set;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.jboss.logging.Logger;
 
+import com.zekret.exception.InternalServerException;
 import com.zekret.model.User;
 import com.zekret.service.IJWTService;
 
@@ -36,7 +37,7 @@ public class JWTServiceImpl implements IJWTService {
                     
         } catch (JwtSignatureException e) {
             LOG.errorf(e, "Error generating JWT token for user: %s", user.getEmail());
-            throw new RuntimeException("Error generating JWT token", e);
+            throw new InternalServerException("Error generating JWT token", e);
         }
     }
     

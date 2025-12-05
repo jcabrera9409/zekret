@@ -5,6 +5,8 @@ import java.time.Instant;
 
 import org.jboss.logging.Logger;
 
+import com.zekret.exception.InternalServerException;
+import com.zekret.exception.UnauthorizedException;
 import com.zekret.model.Token;
 import com.zekret.repository.TokenRepository;
 
@@ -49,7 +51,7 @@ public class JWTAuthFilter implements ContainerRequestFilter {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             LOG.warn("Missing or invalid Authorization header.");
-            throw new IOException("Missing or invalid Authorization header.");
+            throw new UnauthorizedException("Missing or invalid Authorization header.");
         }
 
         String token = authHeader.substring("Bearer ".length()).trim();
@@ -61,12 +63,12 @@ public class JWTAuthFilter implements ContainerRequestFilter {
 
         if(storedToken.isLoggedOut()) {
             LOG.warn("Invalid or logged out token.");
-            throw new IOException("Invalid or logged out token.");
+            throw new UnauthorizedException("Invalid or logged out token.");
         }
 
         if (isExpired(token)) {
             LOG.warn("Token has expired.");
-            throw new IOException("Token has expired.");
+            throw new UnauthorizedException("Token has expired.");
         }
     }
 
@@ -98,7 +100,7 @@ public class JWTAuthFilter implements ContainerRequestFilter {
         try {
             return (JWTCallerPrincipal) jwtParser.parse(token);
         } catch (ParseException e) {
-            throw new RuntimeException("Invalid JWT token", e);
+            throw new InternalServerException("Invalid JWT token", e);
         }
     }
 

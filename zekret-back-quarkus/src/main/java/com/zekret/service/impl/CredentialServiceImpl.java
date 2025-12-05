@@ -6,6 +6,7 @@ import org.jboss.logging.Logger;
 
 import com.zekret.dto.CredentialRequestDTO;
 import com.zekret.dto.CredentialResponseDTO;
+import com.zekret.exception.ResourceNotFoundException;
 import com.zekret.mapper.CredentialMapper;
 import com.zekret.model.Credential;
 import com.zekret.model.CredentialType;
@@ -42,7 +43,7 @@ public class CredentialServiceImpl implements ICredentialService {
         LOG.info("Getting credentials for namespaceZrn: " + namespaceZrn + " and userEmail: " + userEmail);
 
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
         
         List<CredentialResponseDTO> credentials = credentialRepository.
                                                 findByNamespaceZrnAndUserId(namespaceZrn, user.getId())
@@ -57,11 +58,11 @@ public class CredentialServiceImpl implements ICredentialService {
         LOG.info("Getting credential for zrn: " + zrn + " and userEmail: " + userEmail);
 
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
         
         Credential credential = credentialRepository
                                 .findByZrnAndUserId(zrn,  user.getId())
-                                .orElseThrow(() -> new IllegalArgumentException("Credential not found with zrn: " + zrn + " for userEmail: " + userEmail));
+                                .orElseThrow(() -> new ResourceNotFoundException("Credential", zrn));
         
         return CredentialMapper.toDTO(credential);
     }
@@ -72,13 +73,13 @@ public class CredentialServiceImpl implements ICredentialService {
         LOG.info("Registering credential for userEmail: " + userEmail);
         
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
 
         CredentialType credentialType = credentialTypeRepository.findByZrn(credentialRequestDTO.credentialTypeZrn())
-                .orElseThrow(() -> new IllegalArgumentException("CredentialType not found with zrn: " + credentialRequestDTO.credentialTypeZrn()));
+                .orElseThrow(() -> new ResourceNotFoundException("CredentialType", credentialRequestDTO.credentialTypeZrn()));
 
         Namespace namespace = namespaceRepository.findByZrnAndUserId(credentialRequestDTO.namespaceZrn(), user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Namespace not found with zrn: " + credentialRequestDTO.namespaceZrn()));
+                .orElseThrow(() -> new ResourceNotFoundException("Namespace", credentialRequestDTO.namespaceZrn()));
         
         Credential credential = CredentialMapper.toEntity(credentialRequestDTO);
         credential.setZrn(ZrnGenerator.generateCredentialZrn());
@@ -97,18 +98,18 @@ public class CredentialServiceImpl implements ICredentialService {
         LOG.info("Updating credential for zrn: " + zrn + " and userEmail: " + userEmail);
 
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
         
         Credential credential = credentialRepository
                                 .findByZrnAndUserId(zrn,  user.getId())
-                                .orElseThrow(() -> new IllegalArgumentException("Credential not found with zrn: " + zrn + " for userEmail: " + userEmail));
+                                .orElseThrow(() -> new ResourceNotFoundException("Credential", zrn));
 
         CredentialType credentialType = credentialTypeRepository.findByZrn(credentialRequestDTO.credentialTypeZrn())
-                .orElseThrow(() -> new IllegalArgumentException("CredentialType not found with zrn: " + credentialRequestDTO.credentialTypeZrn()));
+                .orElseThrow(() -> new ResourceNotFoundException("CredentialType", credentialRequestDTO.credentialTypeZrn()));
 
 
         Namespace namespace = namespaceRepository.findByZrnAndUserId(credentialRequestDTO.namespaceZrn(), user.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Namespace not found with zrn: " + credentialRequestDTO.namespaceZrn()));
+                .orElseThrow(() -> new ResourceNotFoundException("Namespace", credentialRequestDTO.namespaceZrn()));
 
         // Actualizar la entidad existente en lugar de crear una nueva
         credential.setTitle(credentialRequestDTO.title());
@@ -133,11 +134,11 @@ public class CredentialServiceImpl implements ICredentialService {
         LOG.info("Deleting credential for zrn: " + zrn + " and userEmail: " + userEmail);
 
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
         
         Credential credential = credentialRepository
                                 .findByZrnAndUserId(zrn,  user.getId())
-                                .orElseThrow(() -> new IllegalArgumentException("Credential not found with zrn: " + zrn + " for userEmail: " + userEmail));
+                                .orElseThrow(() -> new ResourceNotFoundException("Credential", zrn));
 
         credentialRepository.delete(credential);
     }

@@ -4,6 +4,8 @@ import org.jboss.logging.Logger;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.zekret.dto.AuthResponseDTO;
+import com.zekret.exception.ResourceNotFoundException;
+import com.zekret.exception.UnauthorizedException;
 import com.zekret.model.Token;
 import com.zekret.model.User;
 import com.zekret.repository.TokenRepository;
@@ -35,14 +37,14 @@ public class AuthServiceImpl implements IAuthService {
     public AuthResponseDTO authenticate(String username, String password) {
         LOG.infof("Authenticating user: %s", username);
         User userExists = userRepository.findByEmailOrUsername(username, username)
-            .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+            .orElseThrow(() -> new ResourceNotFoundException("User", username));
 
         if(!userExists.isEnabled()) {
-            throw new RuntimeException("User account is disabled");
+            throw new UnauthorizedException("User account is disabled");
         }
 
         if(!BCrypt.checkpw(password, userExists.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new UnauthorizedException("Invalid credentials");
         }
 
         LOG.infof("User %s authenticated successfully", username);
@@ -68,7 +70,7 @@ public class AuthServiceImpl implements IAuthService {
     public void logout(String email) {
         LOG.infof("Logging out user with email: %s", email);
         User user = userRepository.findByEmailOrUsername(email, email)
-            .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+            .orElseThrow(() -> new ResourceNotFoundException("User", email));
 
         tokenRepository.invalidateTokensByUserId(user.getId());
         LOG.infof("User %s logged out successfully", email);

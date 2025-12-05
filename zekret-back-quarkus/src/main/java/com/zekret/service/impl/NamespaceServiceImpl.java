@@ -6,6 +6,7 @@ import org.jboss.logging.Logger;
 
 import com.zekret.dto.NamespaceRequestDTO;
 import com.zekret.dto.NamespaceResponseDTO;
+import com.zekret.exception.ResourceNotFoundException;
 import com.zekret.mapper.NamespaceMapper;
 import com.zekret.model.Namespace;
 import com.zekret.model.User;
@@ -36,7 +37,7 @@ public class NamespaceServiceImpl implements INamespaceService {
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
                         .orElseThrow(() -> {
                             LOG.warnf("User with email %s not found.", userEmail);
-                            return new IllegalArgumentException("User not found.");
+                            return new ResourceNotFoundException("User", userEmail);
                         });
         List<NamespaceResponseDTO> namespaces = namespaceRepository.findByUserId(user.getId())
                                                 .stream()
@@ -52,13 +53,13 @@ public class NamespaceServiceImpl implements INamespaceService {
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
                         .orElseThrow(() -> {
                             LOG.warnf("User with email %s not found.", userEmail);
-                            return new IllegalArgumentException("User not found.");
+                            return new ResourceNotFoundException("User", userEmail);
                         });
 
         Namespace namespace = namespaceRepository.findByZrnAndUserId(zrn, user.getId())
                                     .orElseThrow(() -> {
                                         LOG.warnf("Namespace with ZRN %s not found for user %s.", zrn, userEmail);
-                                        return new IllegalArgumentException("Namespace not found.");
+                                        return new ResourceNotFoundException("Namespace", zrn);
                                     });
         return NamespaceMapper.toDTO(namespace);
     
@@ -72,7 +73,7 @@ public class NamespaceServiceImpl implements INamespaceService {
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
                         .orElseThrow(() -> {
                             LOG.warnf("User with email %s not found.", userEmail);
-                            return new IllegalArgumentException("User not found.");
+                            return new ResourceNotFoundException("User", userEmail);
                         });
         
         Namespace entity = NamespaceMapper.toEntity(namespace);
@@ -92,13 +93,13 @@ public class NamespaceServiceImpl implements INamespaceService {
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
                         .orElseThrow(() -> {
                             LOG.warnf("User with email %s not found.", userEmail);
-                            return new IllegalArgumentException("User not found.");
+                            return new ResourceNotFoundException("User", userEmail);
                         });
         
         Namespace existingNamespace = namespaceRepository.findByZrnAndUserId(zrn, user.getId())
                                         .orElseThrow(() -> {
                                             LOG.warnf("Namespace with ZRN %s not found for user %s.", zrn, userEmail);
-                                            return new IllegalArgumentException("Namespace not found.");
+                                            return new ResourceNotFoundException("Namespace", zrn);
                                         });
 
         existingNamespace.setName(namespace.name());
@@ -116,13 +117,13 @@ public class NamespaceServiceImpl implements INamespaceService {
         User user = userRepository.findByEmailOrUsername(userEmail, userEmail)
                         .orElseThrow(() -> {
                             LOG.warnf("User with email %s not found.", userEmail);
-                            return new IllegalArgumentException("User not found.");
+                            return new ResourceNotFoundException("User", userEmail);
                         });
         
         Namespace namespace = namespaceRepository.findByZrnAndUserId(zrn, user.getId())
                                     .orElseThrow(() -> {
                                         LOG.warnf("Namespace with ZRN %s not found for user %s.", zrn, userEmail);
-                                        return new IllegalArgumentException("Namespace not found.");
+                                        return new ResourceNotFoundException("Namespace", zrn);
                                     });
         namespaceRepository.delete(namespace);
     }
