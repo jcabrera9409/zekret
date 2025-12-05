@@ -54,13 +54,8 @@ jobs:
           name: build-artifact
           path: zekret-front/dist/zekret-front/browser
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: front-build
-          path: zekret-front/dist/zekret-front/browser
-
   dockerize-and-push:
-    needs: build
+    needs: [build, trivy_scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -90,7 +85,6 @@ jobs:
           images: ${{ secrets.DOCKER_USERNAME }}/zekret-front
           tags: |
             type=ref,event=branch
-            type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image

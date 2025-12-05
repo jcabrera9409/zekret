@@ -1,50 +1,32 @@
-name: Pipeline For Zekret Back Project
+name: Deployment Pipeline For Creaconfort Store Project
 
 on: 
   push:
-    paths: ['zekret-back/src/**', 'zekret-back/pom.xml', 'zekret-back/Dockerfile', '.github/workflows/back.yml']
-    branches: [main]
+    paths: ['zekret-back-quarkus/src/**', 'zekret-back-quarkus/pom.xml', '.github/workflows/back.yml']
+    branches: [main, feature/*, release/*]
   pull_request:
     branches: [main]
     types: [opened, synchronize]
+  workflow_dispatch:
 
 jobs:
-  dependencies:
+  unit_tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'maven'
-      - name: Download Maven dependencies
-        run: | 
-          cd zekret-back 
-          mvn dependency:go-offline
+          distribution: "temurin"
+          java-version: "21"
+          cache: "maven"
 
-  verify:
-    needs: dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'maven'
-      - name: Build with 'maven'
+      - name: Run Unit Tests
         run: |
-          cd zekret-back
-          mvn -B verify --file pom.xml
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-artifact
-          path: target
+          cd zekret-back-quarkus
+          mvn test
 
-  trivy:
+  trivy_scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,17 +34,48 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'fs'
-          scan-ref: 'zekret-back/'
+          scan-type: "fs"
+          scan-ref: "zekret-back-quarkus/"
           ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
-  
-  dockerize-and-push:
-    needs: [trivy, verify]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          severity: "CRITICAL,HIGH"
+          scanners: "vuln"
+
+  build:
+    needs: [unit_tests, trivy_scan]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+          cache: "maven"
+
+      - name: Build Native Binary
+        run: |
+          cd zekret-back-quarkus
+          mvn package -Dnative -Dquarkus.native.container-build=true -DskipTests
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: zekret-back-quarkus/target/*-runner
+
+  dockerize-and-push:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create target directory
+        run: mkdir -p zekret-back-quarkus/target
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: zekret-back-quarkus/target
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -73,10 +86,23 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/zekret-back
+          tags: |
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./zekret-back
-          file: ./zekret-back/Dockerfile
+          context: ./zekret-back-quarkus
+          file: ./zekret-back-quarkus/src/main/docker/Dockerfile.native-micro
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/zekret-back:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
