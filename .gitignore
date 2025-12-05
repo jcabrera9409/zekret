@@ -46,4 +46,4 @@ ssh/
 logs/
 *nogit*
 dev/init/*.sql
-dev/mysql-data/
+dev/*-data/
