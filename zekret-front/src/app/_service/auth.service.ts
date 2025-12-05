@@ -26,7 +26,7 @@ export class AuthService {
     user.username = email;
     user.password = password;
     
-    return this.http.post<APIResponseDTO<AuthenticationResponseDTO>>(`${this.url}/login`, user);
+    return this.http.get<APIResponseDTO<AuthenticationResponseDTO>>(`${this.url}/login?username=${user.username}&password=${user.password}`);
   }
 
   isLogged() {

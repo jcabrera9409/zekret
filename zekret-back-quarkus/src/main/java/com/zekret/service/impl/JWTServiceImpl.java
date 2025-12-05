@@ -33,6 +33,7 @@ public class JWTServiceImpl implements IJWTService {
                     .upn(user.getEmail())
                     .groups(Set.of("user"))
                     .expiresIn(Duration.ofSeconds(expirationTime))
+                    .claim("username", user.getUsername())
                     .sign();
                     
         } catch (JwtSignatureException e) {
