@@ -10,7 +10,7 @@ export class UtilMethods {
     constructor(private envService: EnvService) {}
 
     public getJwtToken(): string {
-        let token = localStorage.getItem(this.envService.getTokenName());
+        let token = sessionStorage.getItem(this.envService.getTokenName());
         return token;
     }
 
@@ -69,11 +69,11 @@ export class UtilMethods {
     }
 
     public setJwtToken(token: string): void {
-        localStorage.setItem(this.envService.getTokenName(), token);
+        sessionStorage.setItem(this.envService.getTokenName(), token);
     }
 
     public removeJwtToken(): void {
-        localStorage.removeItem(this.envService.getTokenName());
+        sessionStorage.removeItem(this.envService.getTokenName());
     }
 
     // Métodos estáticos para compatibilidad hacia atrás (opcional)

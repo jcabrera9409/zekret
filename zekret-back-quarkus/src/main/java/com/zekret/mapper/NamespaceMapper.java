@@ -20,9 +20,11 @@ public class NamespaceMapper {
             entity.getDescription(),
             entity.getCreatedAt(),
             entity.getUpdatedAt(),
-            entity.getCredentials().stream()
-                .map(credential -> CredentialMapper.toDTO(credential))
-                .toList()
+            entity.getCredentials() != null 
+                ? entity.getCredentials().stream()
+                    .map(credential -> CredentialMapper.toDTO(credential))
+                    .toList()
+                : null
         );
     }
 }

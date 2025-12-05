@@ -8,9 +8,9 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { provideHttpClient, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
 import { errorInterceptor } from './interceptors/error.interceptor';
 
-// Token getter function para JWT usando localStorage directamente
+// Token getter function para JWT usando sessionStorage directamente
 export function jwtTokenGetter(): string {
-  return localStorage.getItem('access_token') || '';
+  return sessionStorage.getItem('access_token') || '';
 }
 
 export const appConfig: ApplicationConfig = {

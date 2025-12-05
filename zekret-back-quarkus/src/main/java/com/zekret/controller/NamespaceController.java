@@ -135,6 +135,12 @@ public class NamespaceController {
 
         namespaceService.deleteNamespaceByZrnAndUserEmail(zrn, username);
 
-        return Response.ok().build();
+        return Response.ok(
+            APIResponseDTO.success(
+                "Namespace deleted successfully.",
+                null,
+                Response.Status.OK.getStatusCode()
+            )
+        ).build();
     }
 }
