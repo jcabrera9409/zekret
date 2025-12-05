@@ -1,57 +1,16 @@
-name: Pipeline For Zekret-Front Project
+name: Deployment Pipeline For Zekret Front Project
 
 on: 
   push:
     paths: ['zekret-front/**', '.github/workflows/front.yml']
-    branches: [main]
+    branches: [main, feature/*, release/*]
   pull_request:
     branches: [main]
     types: [opened, synchronize]
+  workflow_dispatch:
 
 jobs:
-  dependencies:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: zekret-front/package-lock.json
-
-      - name: Install dependencies
-        run: |
-          ls -al 
-          cd zekret-front
-          npm ci
-
-  verify:
-    needs: dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: zekret-front/package-lock.json
-
-      - name: Build app
-        run: |
-          cd zekret-front
-          npm ci
-          npx ng build
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: front-build
-          path: zekret-front/dist/zekret-front/browser
-
-  trivy:
+  trivy_scan:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,13 +22,57 @@ jobs:
           scan-ref: 'zekret-front/'
           ignore-unfixed: true
           severity: 'CRITICAL,HIGH'
+          scanners: 'vuln'
+
+  build:
+    runs-on: ubuntu-latest
+    environment: ${{ 
+        github.ref == 'refs/heads/main' && 'production' ||
+        'development'
+      }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Environment File
+        run: |
+          echo "${{ vars.FRONTEND_ENVIRONMENTS || '' }}" > zekret-front/src/assets/env.js
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: zekret-front/package-lock.json
+
+      - name: Build
+        run: |
+          cd zekret-front
+          npm ci
+          npx ng build --configuration=production
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact
+          path: zekret-front/dist/zekret-front/browser
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: front-build
+          path: zekret-front/dist/zekret-front/browser
 
   dockerize-and-push:
-    needs: [verify, trivy]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create target directory
+        run: mkdir -p zekret-front/dist/zekret-front/browser
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact
+          path: zekret-front/dist/zekret-front/browser
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -80,13 +83,24 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/zekret-front
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./zekret-front
-          file: ./zekret-front/Dockerfile
+          context: zekret-front
+          file: zekret-front/docker/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/zekret-front:latest
-          build-args: |
-            HOST=${{ secrets.PRD_HOST }}
-            DOMAIN=${{ secrets.PRD_DOMAIN }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
