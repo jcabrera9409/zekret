@@ -27,19 +27,30 @@ services:
       timeout: 10s
       retries: 3
 
-  # back:
-  #   image: jcabrera9409/zekret-back:latest
-  #   restart: on-failure
-  #   environment:
-  #     DATASOURCE_BD:    jdbc:mysql://bd:3306/zekretdb
-  #     USER_BD:          $USER_BD
-  #     PASSWORD_BD:      $PASSWORD_BD
-  #     JWT_SECRET_KEY:   $JWT_SECRET_KEY
-  #   depends_on:
-  #     - bd
-  #   volumes:
-  #     - ./zekret-back/files:/app/files:ro
-  #     - ./zekret-back/logs:/app/logs
+  back:
+    image: jcabrera9409/zekret-back:latest
+    restart: always
+    container_name: back
+    platform: linux/amd64
+    environment:
+      DATASOURCE_URL:          $DATASOURCE_URL
+      USER_BD:                $MYSQL_USER
+      PASSWORD_BD:            $MYSQL_PASSWORD
+      JWT_PUBLIC_KEY_PATH:    $JWT_PUBLIC_KEY_PATH
+      JWT_PRIVATE_KEY_PATH:   $JWT_PRIVATE_KEY_PATH
+    depends_on:
+      - bd
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./privateKey.pem:/work/files/privateKey.pem:ro
+      - ./publicKey.pem:/work/files/publicKey.pem:ro
+      - ./logs:/work/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # front:
   #   image: jcabrera9409/zekret-front:latest

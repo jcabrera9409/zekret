@@ -1,8 +1,10 @@
 package com.zekret.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+@RegisterForReflection
 public record CredentialRequestDTO (
     @NotBlank(message="Title is mandatory")
     @Size(min = 1, max = 255, message = "Title must be at most 255 characters")

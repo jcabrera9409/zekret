@@ -1,9 +1,11 @@
 package com.zekret.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+@RegisterForReflection
 public record UserRequestDTO (
     @NotBlank(message = "Email is mandatory")
     @Email(message = "Email should be valid")

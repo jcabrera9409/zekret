@@ -1,5 +1,6 @@
 package com.zekret.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -7,6 +8,7 @@ import java.util.List;
  * DTO para respuestas de error estandarizadas.
  * Proporciona información consistente sobre errores HTTP.
  */
+@RegisterForReflection
 public record ErrorResponseDTO(
     LocalDateTime timestamp,
     int status,

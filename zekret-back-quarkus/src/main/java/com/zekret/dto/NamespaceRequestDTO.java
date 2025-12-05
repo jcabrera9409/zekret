@@ -1,8 +1,10 @@
 package com.zekret.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+@RegisterForReflection
 public record NamespaceRequestDTO (
     @NotBlank(message = "Name cannot be blank")
     @Size(min=1, max = 100, message = "Name cannot exceed 100 characters")

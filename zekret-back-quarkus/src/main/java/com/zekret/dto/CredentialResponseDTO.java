@@ -1,7 +1,9 @@
 package com.zekret.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.time.LocalDateTime;
 
+@RegisterForReflection
 public record CredentialResponseDTO (
     String zrn,
     String title,

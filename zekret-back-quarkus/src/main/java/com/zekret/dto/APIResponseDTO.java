@@ -1,7 +1,9 @@
 package com.zekret.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.time.LocalDateTime;
 
+@RegisterForReflection
 public record APIResponseDTO<T>(
     boolean success,
     String message,
