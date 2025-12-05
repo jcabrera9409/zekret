@@ -1,4 +1,4 @@
-name: Deployment Pipeline For Creaconfort Store Project
+name: Deployment Pipeline For Zekret Back Project
 
 on: 
   push:
@@ -20,8 +20,20 @@ jobs:
           distribution: "temurin"
           java-version: "21"
           cache: "maven"
+      
+      - name: Setup JWT Keys
+        run: |
+          mkdir -p /tmp/jwt-keys
+          sudo chmod 700 /tmp/jwt-keys
+          openssl genrsa -out /tmp/jwt-keys/privateKey.pem 2048
+          openssl rsa -pubout -in /tmp/jwt-keys/privateKey.pem -out /tmp/jwt-keys/publicKey.pem
+          chmod 600 /tmp/jwt-keys/privateKey.pem
+          chmod 644 /tmp/jwt-keys/publicKey.pem
 
       - name: Run Unit Tests
+        env:
+          JWT_PRIVATE_KEY_PATH: file:/tmp/jwt-keys/privateKey.pem
+          JWT_PUBLIC_KEY_PATH: file:/tmp/jwt-keys/publicKey.pem
         run: |
           cd zekret-back-quarkus
           mvn test
