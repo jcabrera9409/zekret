@@ -119,14 +119,14 @@ class CredentialMapperTest {
 
         assertNotNull(dto);
         assertEquals(credential.getZrn(), dto.zrn());
-        assertEquals(credential.getTitle(), dto.tite());
-        assertEquals(credential.getUsername(), dto.usename());
-        assertEquals(credential.getPassword(), dto.pasword());
-        assertEquals(credential.getSshPublicKey(), dto.sshublicKey());
-        assertEquals(credential.getSshPrivateKey(), dto.sshrivateKey());
-        assertEquals(credential.getSecretText(), dto.secetText());
-        assertEquals(credential.getFileName(), dto.filName());
-        assertEquals(credential.getFileContent(), dto.filContent());
+        assertEquals(credential.getTitle(), dto.title());
+        assertEquals(credential.getUsername(), dto.username());
+        assertEquals(credential.getPassword(), dto.password());
+        assertEquals(credential.getSshPublicKey(), dto.sshPublicKey());
+        assertEquals(credential.getSshPrivateKey(), dto.sshPrivateKey());
+        assertEquals(credential.getSecretText(), dto.secretText());
+        assertEquals(credential.getFileName(), dto.fileName());
+        assertEquals(credential.getFileContent(), dto.fileContent());
         assertEquals(credential.getNotes(), dto.notes());
         assertNotNull(dto.createdAt());
         assertNotNull(dto.updatedAt());
@@ -167,12 +167,12 @@ class CredentialMapperTest {
         CredentialResponseDTO dto = CredentialMapper.toDTO(credential);
 
         assertNotNull(dto);
-        assertEquals("Basic Password", dto.tite());
+        assertEquals("Basic Password", dto.title());
         assertEquals("zrn:zekret:credential:20250715:cred-333", dto.zrn());
-        assertNull(dto.usename());
-        assertNull(dto.pasword());
-        assertNull(dto.sshublicKey());
-        assertNull(dto.sshrivateKey());
+        assertNull(dto.username());
+        assertNull(dto.password());
+        assertNull(dto.sshPublicKey());
+        assertNull(dto.sshPrivateKey());
         assertNotNull(dto.credentialType());
         assertNotNull(dto.namespace());
     }
@@ -218,9 +218,9 @@ class CredentialMapperTest {
         CredentialResponseDTO responseDTO = CredentialMapper.toDTO(credential);
 
         // Verify data integrity
-        assertEquals(requestDTO.title(), responseDTO.tite());
-        assertEquals(requestDTO.username(), responseDTO.usename());
-        assertEquals(requestDTO.password(), responseDTO.pasword());
+        assertEquals(requestDTO.title(), responseDTO.title());
+        assertEquals(requestDTO.username(), responseDTO.username());
+        assertEquals(requestDTO.password(), responseDTO.password());
         assertEquals(requestDTO.notes(), responseDTO.notes());
         assertNotNull(responseDTO.zrn());
         assertNotNull(responseDTO.createdAt());

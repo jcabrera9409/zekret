@@ -4,7 +4,7 @@ import { HeaderComponent } from "../header/header.component";
 import { StatsNamespaceComponent } from "../stats-namespace/stats-namespace.component";
 import { IndexNamespaceComponent } from "./index-namespace/index-namespace.component";
 import { CredentialsComponent } from "./credentials/credentials.component";
-import { Namespace } from '../../_model/namespace';
+import { NamespaceResponseDTO } from '../../_model/namespace';
 import { NamespaceService } from '../../_service/namespace.service';
 import { LoaderComponent } from "../../shared/loader/loader.component";
 
@@ -21,7 +21,7 @@ export class NamespaceComponent implements OnInit {
   isNamespacesTabActive: boolean = true;
   isCredentialsTabActive: boolean = false;
 
-  selectedNamespace: Namespace | null = null;
+  selectedNamespace: NamespaceResponseDTO | null = null;
 
   constructor(
     private namespaceService: NamespaceService
@@ -37,7 +37,7 @@ export class NamespaceComponent implements OnInit {
     });
   }
 
-  onNamespaceSelected(namespace: Namespace) {
+  onNamespaceSelected(namespace: NamespaceResponseDTO) {
     this.selectedNamespace = namespace;
     this.toggleCredentialsTab(); 
   }

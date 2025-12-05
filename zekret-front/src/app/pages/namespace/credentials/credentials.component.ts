@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { CredentialEditionDialogComponent } from '../../../modals/credential-edition-dialog/credential-edition-dialog.component';
 import { CredentialDetailDialogComponent } from '../../../modals/credential-detail-dialog/credential-detail-dialog.component';
-import { Namespace } from '../../../_model/namespace';
-import { Credential } from '../../../_model/credential';
+import { NamespaceResponseDTO } from '../../../_model/namespace';
+import { CredentialResponseDTO } from '../../../_model/credential';
 import { CredentialService } from '../../../_service/credential.service';
 import { ConfirmDeleteDialogComponent } from '../../../modals/confirm-delete-dialog/confirm-delete-dialog.component';
 import { ConfirmDeleteDataDTO } from '../../../_model/dto';
@@ -21,7 +21,7 @@ import { finalize } from 'rxjs';
   styleUrl: './credentials.component.css'
 })
 export class CredentialsComponent implements OnChanges, OnInit {
-  @Input() selectedNamespace: Namespace | null = null;
+  @Input() selectedNamespace: NamespaceResponseDTO | null = null;
 
   isLoading: boolean = false;
 
@@ -31,7 +31,7 @@ export class CredentialsComponent implements OnChanges, OnInit {
     private notificationService: NotificationService
   ) {}
 
-  currentCredentials: Credential[] = [];
+  currentCredentials: CredentialResponseDTO[] = [];
 
   ngOnInit() {
     this.credentialService.getChangeObject().subscribe({
@@ -71,7 +71,7 @@ export class CredentialsComponent implements OnChanges, OnInit {
     }
   }
 
-  openCreateCredentialDialog(credential?: Credential) {
+  openCreateCredentialDialog(credential?: CredentialResponseDTO) {
     this.dialog.open(CredentialEditionDialogComponent, {
       width: '500px',
       data: { 
@@ -81,7 +81,7 @@ export class CredentialsComponent implements OnChanges, OnInit {
     });
   }
 
-  deleteCredential(credential: Credential) {
+  deleteCredential(credential: CredentialResponseDTO) {
     const dialogData: ConfirmDeleteDataDTO = {
       title: 'Confirmar eliminación',
       message: `¿Estás seguro de que deseas eliminar la credencial "${credential.title}"? Esta acción no se puede deshacer.`,
@@ -101,14 +101,14 @@ export class CredentialsComponent implements OnChanges, OnInit {
     });
   }
 
-  onCredentialClick(credential: Credential) {
+  onCredentialClick(credential: CredentialResponseDTO) {
     this.dialog.open(CredentialDetailDialogComponent, {
       width: '700px',
       data: credential
     });
   }
 
-  private confirmDeleteNamespace(credencial: Credential) {
+  private confirmDeleteNamespace(credencial: CredentialResponseDTO) {
     this.isLoading = true;
     this.credentialService.deleteByZrn(credencial.zrn)
       .pipe(

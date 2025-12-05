@@ -4,7 +4,7 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { NamespaceEditionDialogComponent } from '../../../modals/namespace-edition-dialog/namespace-edition-dialog.component';
 import { ConfirmDeleteDialogComponent } from '../../../modals/confirm-delete-dialog/confirm-delete-dialog.component';
 import { NamespaceService } from '../../../_service/namespace.service';
-import { Namespace } from '../../../_model/namespace';
+import { NamespaceRequestDTO, NamespaceResponseDTO } from '../../../_model/namespace';
 import { ConfirmDeleteDataDTO } from '../../../_model/dto';
 import { CredentialService } from '../../../_service/credential.service';
 import { LoaderComponent } from "../../../shared/loader/loader.component";
@@ -21,11 +21,11 @@ import { finalize } from 'rxjs';
   styleUrl: './index-namespace.component.css'
 })
 export class IndexNamespaceComponent implements OnInit {
-  @Output() namespaceSelected = new EventEmitter<Namespace>();
+  @Output() namespaceSelected = new EventEmitter<NamespaceResponseDTO>();
 
   isLoading: boolean = false;
 
-  namespaces: Namespace[] = [];
+  namespaces: NamespaceResponseDTO[] = [];
 
   constructor(
     private dialog: MatDialog,
@@ -75,18 +75,18 @@ export class IndexNamespaceComponent implements OnInit {
       })
   }
 
-  onNamespaceClick(namespace: Namespace) {
+  onNamespaceClick(namespace: NamespaceResponseDTO) {
     this.namespaceSelected.emit(namespace);
   }
 
-  openCreateNamespaceDialog(namespace: Namespace = null) {
+  openCreateNamespaceDialog(namespace: NamespaceRequestDTO = null) {
     this.dialog.open(NamespaceEditionDialogComponent, {
       width: '500px',
       data: namespace
     });
   }
 
-  deleteNamespace(namespace: Namespace) {
+  deleteNamespace(namespace: NamespaceResponseDTO) {
     const dialogData: ConfirmDeleteDataDTO = {
       title: 'Confirmar eliminación',
       message: `¿Estás seguro de que deseas eliminar el namespace "${namespace.name}"? Esta acción no se puede deshacer.`,
@@ -106,7 +106,7 @@ export class IndexNamespaceComponent implements OnInit {
     });
   }
 
-  private confirmDeleteNamespace(namespace: Namespace) {
+  private confirmDeleteNamespace(namespace: NamespaceResponseDTO) {
     this.isLoading = true;
     this.namespaceService.deleteByZrn(namespace.zrn)
       .pipe(

@@ -126,8 +126,8 @@ class CredentialServiceImplTest {
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals("Production SSH", result.get(0).tite());
-        assertEquals("Another Credential", result.get(1).tite());
+        assertEquals("Production SSH", result.get(0).title());
+        assertEquals("Another Credential", result.get(1).title());
 
         verify(userRepository, times(1)).findByEmailOrUsername("test@example.com", "test@example.com");
         verify(credentialRepository, times(1)).findByNamespaceZrnAndUserId(testNamespace.getZrn(), 1L);
@@ -184,9 +184,9 @@ class CredentialServiceImplTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals("Production SSH", result.tite());
+        assertEquals("Production SSH", result.title());
         assertEquals(testCredential.getZrn(), result.zrn());
-        assertEquals("admin", result.usename());
+        assertEquals("admin", result.username());
 
         verify(userRepository, times(1)).findByEmailOrUsername("test@example.com", "test@example.com");
         verify(credentialRepository, times(1)).findByZrnAndUserId(testCredential.getZrn(), 1L);
@@ -257,8 +257,8 @@ class CredentialServiceImplTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals("New SSH Key", result.tite());
-        assertEquals("root", result.usename());
+        assertEquals("New SSH Key", result.title());
+        assertEquals("root", result.username());
         assertNotNull(result.zrn());
         assertTrue(result.zrn().startsWith("zrn:zekret:credential:"));
 
@@ -373,9 +373,9 @@ class CredentialServiceImplTest {
 
         // Assert
         assertNotNull(result);
-        assertEquals("Updated SSH Key", result.tite());
-        assertEquals("newadmin", result.usename());
-        assertEquals("newpassword", result.pasword());
+        assertEquals("Updated SSH Key", result.title());
+        assertEquals("newadmin", result.username());
+        assertEquals("newpassword", result.password());
         assertEquals("Updated notes", result.notes());
 
         verify(credentialRepository, times(1)).findByZrnAndUserId(testCredential.getZrn(), 1L);

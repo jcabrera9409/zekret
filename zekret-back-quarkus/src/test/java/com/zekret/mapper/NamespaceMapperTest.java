@@ -106,8 +106,8 @@ class NamespaceMapperTest {
         assertEquals(1, dto.credentials().size());
         
         CredentialResponseDTO credDto = dto.credentials().get(0);
-        assertEquals("Test Credential", credDto.tite());
-        assertEquals("testuser", credDto.usename());
+        assertEquals("Test Credential", credDto.title());
+        assertEquals("testuser", credDto.username());
     }
 
     @Test
@@ -223,7 +223,7 @@ class NamespaceMapperTest {
         for (int i = 0; i < 3; i++) {
             CredentialResponseDTO credDto = dto.credentials().get(i);
             assertNotNull(credDto);
-            assertEquals("Credential " + (i + 1), credDto.tite());
+            assertEquals("Credential " + (i + 1), credDto.title());
         }
     }
 }

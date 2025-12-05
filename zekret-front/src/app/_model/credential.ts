@@ -1,9 +1,9 @@
 import { CredentialTypeDTO } from "./dto";
-import { Namespace } from "./namespace";
+import { NamespaceRequestDTO, NamespaceResponseDTO } from "./namespace";
 
-export class Credential {
-    title: string;
+export class CredentialResponseDTO {
     zrn: string;
+    title: string;
     username: string;
     password: string;
     sshPublicKey: string;
@@ -15,5 +15,19 @@ export class Credential {
     createdAt: Date;
     updatedAt: Date;
     credentialType: CredentialTypeDTO;
-    namespace: Namespace
+    namespace: NamespaceResponseDTO;
+}
+
+export class CredentialRequestDTO {
+    title: string;
+    username: string;
+    password: string;
+    sshPublicKey: string;
+    sshPrivateKey: string;
+    secretText: string;
+    fileName: string;
+    fileContent: string;
+    notes: string;
+    credentialTypeZrn: string;
+    namespaceZrn: string;
 }

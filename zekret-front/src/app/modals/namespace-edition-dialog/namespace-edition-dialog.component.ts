@@ -1,7 +1,7 @@
 import { Component, Inject, Renderer2 } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Namespace } from '../../_model/namespace';
+import { NamespaceRequestDTO, NamespaceResponseDTO } from '../../_model/namespace';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { NamespaceService } from '../../_service/namespace.service';
 import { catchError, EMPTY, finalize, switchMap } from 'rxjs';
@@ -28,7 +28,7 @@ export class NamespaceEditionDialogComponent {
     private namespaceService: NamespaceService,
     private notificationService: NotificationService,
     private renderer: Renderer2,
-    @Inject(MAT_DIALOG_DATA) private namespace: Namespace | null
+    @Inject(MAT_DIALOG_DATA) private namespace: NamespaceResponseDTO | null
   ) {
     this.form = new FormGroup({
       name: new FormControl(this.namespace ? this.namespace.name : '', [Validators.required, Validators.maxLength(50)]),
@@ -50,13 +50,13 @@ export class NamespaceEditionDialogComponent {
     }
 
     this.isLoading = true;
-    let namespaceData: Namespace = new Namespace();
-    namespaceData.zrn = this.namespace ? this.namespace.zrn : '';
+    let namespaceData: NamespaceRequestDTO = new NamespaceRequestDTO();
+    const namespaceZrn = this.namespace ? this.namespace.zrn : '';
     namespaceData.name = this.form.value.name;
     namespaceData.description = this.form.value.description;
 
     const operation = (this.namespace)
-      ? this.namespaceService.modifyByZrn(namespaceData.zrn, namespaceData)
+      ? this.namespaceService.modifyByZrn(namespaceZrn, namespaceData)
       : this.namespaceService.register(namespaceData);
 
     operation

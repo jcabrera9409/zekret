@@ -3,8 +3,8 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { CommonModule } from '@angular/common';
 import { credentialType } from '../../_model/credential-type';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { Namespace } from '../../_model/namespace';
-import { Credential } from '../../_model/credential';
+import { NamespaceResponseDTO } from '../../_model/namespace';
+import { CredentialRequestDTO, CredentialResponseDTO } from '../../_model/credential';
 import { CredentialService } from '../../_service/credential.service';
 import { catchError, EMPTY, finalize, switchMap } from 'rxjs';
 import { Message } from '../../_model/message';
@@ -98,14 +98,14 @@ export class CredentialEditionDialogComponent {
     }
 
     this.isLoading = true;
-    let credentialData: Credential = new Credential();
-    credentialData.zrn = this.data.credential ? this.data.credential.zrn : '';
+    let credentialData: CredentialRequestDTO = new CredentialRequestDTO();
+    const credentialZrn = this.data.credential ? this.data.credential.zrn : '';
     credentialData.title = this.credentialForm.value.title;
-    credentialData.credentialType = this.credentialType[this.credentialForm.value.type] //this.credentialType.find(ct => ct.zrn === this.credentialForm.value.type);
-    credentialData.namespace = this.data.namespace;
+    credentialData.credentialTypeZrn = this.credentialType[this.credentialForm.value.type].zrn //this.credentialType.find(ct => ct.zrn === this.credentialForm.value.type);
+    credentialData.namespaceZrn = this.data.namespace.zrn;
     credentialData.notes = this.credentialForm.value.notas;
     
-    switch (credentialData.credentialType.zrn) {
+    switch (credentialData.credentialTypeZrn) {
       case 'username_password':
         credentialData.username = this.credentialForm.value.up_username;
         credentialData.password = this.credentialForm.value.up_password;
@@ -125,7 +125,7 @@ export class CredentialEditionDialogComponent {
     }
 
     const operation = (this.data.credential)
-      ? this.credentialService.modifyByZrn(credentialData.zrn, credentialData)
+      ? this.credentialService.modifyByZrn(credentialZrn, credentialData)
       : this.credentialService.register(credentialData);
 
     operation
@@ -168,6 +168,6 @@ export class CredentialEditionDialogComponent {
 }
 
 export interface CredentialEditionDialogData {
-  namespace: Namespace; 
-  credential: Credential; 
+  namespace: NamespaceResponseDTO; 
+  credential: CredentialResponseDTO | null; 
 }

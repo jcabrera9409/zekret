@@ -1,10 +1,15 @@
-import { Credential } from "./credential";
+import { CredentialResponseDTO } from "./credential";
 
-export class Namespace {
+export class NamespaceResponseDTO {
     name: string;
     zrn: string;
     description: string;
     createdAt: Date;
     updatedAt: Date;
-    credentials: Credential[];
+    credentials: CredentialResponseDTO[];
+}
+
+export class NamespaceRequestDTO {
+    name: string;
+    description: string;
 }

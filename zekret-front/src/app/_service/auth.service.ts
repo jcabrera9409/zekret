@@ -1,7 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { User } from '../_model/user';
 import { APIResponseDTO, AuthenticationResponseDTO } from '../_model/dto';
 import { UtilMethods } from '../util/util';
 import { EnvService } from './env.service';
@@ -21,12 +20,7 @@ export class AuthService {
   ) { }
 
   login(email: string, password: string) {
-    let user: User = new User(); 
-    user.email = email;
-    user.username = email;
-    user.password = password;
-    
-    return this.http.get<APIResponseDTO<AuthenticationResponseDTO>>(`${this.url}/login?username=${user.username}&password=${user.password}`);
+    return this.http.get<APIResponseDTO<AuthenticationResponseDTO>>(`${this.url}/login?username=${email}&password=${password}`);
   }
 
   isLogged() {

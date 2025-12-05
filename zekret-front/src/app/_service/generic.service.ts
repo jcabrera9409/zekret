@@ -7,10 +7,10 @@ import { Message } from '../_model/message';
 @Injectable({
   providedIn: 'root'
 })
-export class GenericService<T> {
+export class GenericService<TRequest, TResponse> {
 
-  private objectChange: Subject<T[]> = new Subject<T[]>();
-  private objectDeleteChange: Subject<T> = new Subject<T>();
+  private objectChange: Subject<TResponse[]> = new Subject<TResponse[]>();
+  private objectDeleteChange: Subject<TResponse> = new Subject<TResponse>();
   private messageChange: Subject<Message> = new Subject<Message>();
 
   constructor(
@@ -19,23 +19,23 @@ export class GenericService<T> {
   ) { }
 
   getAll() {
-    return this.http.get<APIResponseDTO<T[]>>(`${this.url}`);
+    return this.http.get<APIResponseDTO<TResponse[]>>(`${this.url}`);
   }
 
   getByZrn(zrn: number) {
-    return this.http.get<APIResponseDTO<T>>(`${this.url}/${zrn}`);
+    return this.http.get<APIResponseDTO<TResponse>>(`${this.url}/${zrn}`);
   }
 
-  register(t: T) {
-    return this.http.post<APIResponseDTO<T>>(`${this.url}`, t);
+  register(t: TRequest) {
+    return this.http.post<APIResponseDTO<TResponse>>(`${this.url}`, t);
   }
 
-  modify(t: T) {
-    return this.http.put<APIResponseDTO<T>>(`${this.url}`, t);
+  modify(t: TRequest) {
+    return this.http.put<APIResponseDTO<TResponse>>(`${this.url}`, t);
   }
 
-  modifyByZrn(zrn: string, t: T) {
-    return this.http.put<APIResponseDTO<T>>(`${this.url}/${zrn}`, t);
+  modifyByZrn(zrn: string, t: TRequest) {
+    return this.http.put<APIResponseDTO<TResponse>>(`${this.url}/${zrn}`, t);
   }
 
   delete(id: number) {
@@ -50,7 +50,7 @@ export class GenericService<T> {
     return this.objectChange.asObservable();
   }
 
-  setChangeObject(t: T[]) {
+  setChangeObject(t: TResponse[]) {
     this.objectChange.next(t);
   }
 
@@ -58,7 +58,7 @@ export class GenericService<T> {
     return this.objectDeleteChange.asObservable();
   }
 
-  setChangeObjectDelete(t: T) {
+  setChangeObjectDelete(t: TResponse) {
     this.objectDeleteChange.next(t);
   }
 

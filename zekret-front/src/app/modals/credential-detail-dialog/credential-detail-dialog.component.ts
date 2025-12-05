@@ -1,6 +1,6 @@
 import { Component, Inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { Credential } from '../../_model/credential';
+import { CredentialResponseDTO } from '../../_model/credential';
 import { CommonModule } from '@angular/common';
 import { NotificationService } from '../../_service/notification.service';
 import { Message } from '../../_model/message';
@@ -22,7 +22,7 @@ export class CredentialDetailDialogComponent {
   constructor(
     private notificationService: NotificationService,
     private dialogRef: MatDialogRef<CredentialDetailDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public credential: Credential
+    @Inject(MAT_DIALOG_DATA) public credential: CredentialResponseDTO
   ) {
     this.setCredentialType();
    }
