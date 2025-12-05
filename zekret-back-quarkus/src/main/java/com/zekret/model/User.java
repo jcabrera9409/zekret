@@ -20,7 +20,7 @@ public class User extends PanacheEntityBase {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    public Long id;
+    private Long id;
     
     @Column(name = "email", nullable = false, unique = true)
 	private String email;
