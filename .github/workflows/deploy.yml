@@ -9,7 +9,7 @@ on:
 jobs:
   deploy-to-vm:
     name: Deploy to VM
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, bastion]
     environment:
       name: production
     steps:
@@ -29,7 +29,7 @@ jobs:
   init-compose:
     name: Initialize Docker Compose
     needs: deploy-to-vm
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, bastion]
     environment:
       name: production
     steps:
