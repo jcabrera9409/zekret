@@ -41,7 +41,18 @@ export class HeaderComponent implements OnInit{
   }
 
   logout() {
-    this.authService.logout();
+    this.authService.logout().subscribe({
+      next: () => {
+        sessionStorage.clear();
+        this.router.navigate(['login']);
+      },
+      error: (err) => {
+        console.error('Error durante el logout:', err);
+        // Limpiar la sesión de todas formas
+        sessionStorage.clear();
+        this.router.navigate(['login']);
+      }
+    });
   }
 
   // Cerrar menú al hacer clic fuera de él

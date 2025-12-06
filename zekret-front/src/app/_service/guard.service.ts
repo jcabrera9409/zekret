@@ -8,14 +8,20 @@ export const authGuard = (): Observable<boolean> | boolean => {
     const utilMethods = inject(UtilMethods);
 
     if (!authService.isLogged()) {
-        authService.logout();
+        authService.logout().subscribe({
+            next: () => sessionStorage.clear(),
+            error: () => sessionStorage.clear()
+        });
         return false;
     }
     else {
         if (!utilMethods.isTokenExpired()) {
             return true;
         } else {
-            authService.logout();
+            authService.logout().subscribe({
+                next: () => sessionStorage.clear(),
+                error: () => sessionStorage.clear()
+            });
             return false;
         }
     }

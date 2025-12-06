@@ -29,11 +29,6 @@ export class AuthService {
   }
 
   logout() {
-    this.http.get(`${this.envService.getApiUrl()}/auth/logout`)
-      .subscribe(() => {
-        sessionStorage.clear();
-        //this.router.navigate(['login']);
-      })
-
+    return this.http.get(`${this.envService.getApiUrl()}/auth/logout`);
   }
 }
