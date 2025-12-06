@@ -98,3 +98,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
+
+  deploy-to-vm:
+    if: github.ref == 'refs/heads/main'
+    needs: dockerize-and-push
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: SSH y ejecutar docker compose
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/deployment
+            docker compose pull
+            docker compose up -d
