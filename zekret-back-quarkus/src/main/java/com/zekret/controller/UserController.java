@@ -8,6 +8,7 @@ import com.zekret.dto.UserResponseDTO;
 import com.zekret.service.IUserService;
 
 import jakarta.annotation.security.PermitAll;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
@@ -31,6 +32,7 @@ public class UserController {
     @POST
     @Path("/register")
     @PermitAll
+    @Transactional
     public Response register(@Valid UserRequestDTO userRequest) {
         LOG.infof("Registering user: %s", userRequest.username());
         UserResponseDTO responseDTO = userService.register(userRequest);
