@@ -3,7 +3,9 @@ package com.zekret.mapper;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.mindrot.jbcrypt.BCrypt;
 import org.junit.jupiter.api.Test;
 
 import com.zekret.dto.UserRequestDTO;
@@ -25,7 +27,8 @@ class UserMapperTest {
         assertNotNull(user);
         assertEquals(dto.email(), user.getEmail());
         assertEquals(dto.username(), user.getUsername());
-        assertEquals(dto.password(), user.getPassword());
+        assertNotEquals(dto.password(), user.getPassword());
+        assertTrue(BCrypt.checkpw(dto.password(), user.getPassword()));
     }
 
     @Test
@@ -133,7 +136,8 @@ class UserMapperTest {
 
         assertEquals(testEmail, user.getEmail());
         assertEquals(testUsername, user.getUsername());
-        assertEquals(testPassword, user.getPassword());
+        assertNotEquals(testPassword, user.getPassword());
+        assertTrue(BCrypt.checkpw(testPassword, user.getPassword()));
     }
 
     @Test

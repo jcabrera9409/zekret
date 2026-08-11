@@ -4,9 +4,11 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.mindrot.jbcrypt.BCrypt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -167,7 +169,8 @@ class UserServiceImplTest {
         assertNotNull(capturedUser);
         assertEquals(requestDTO.email(), capturedUser.getEmail());
         assertEquals(requestDTO.username(), capturedUser.getUsername());
-        assertEquals(requestDTO.password(), capturedUser.getPassword());
+        assertNotEquals(requestDTO.password(), capturedUser.getPassword());
+        assertTrue(BCrypt.checkpw(requestDTO.password(), capturedUser.getPassword()));
     }
 
     @Test
