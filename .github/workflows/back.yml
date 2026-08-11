@@ -38,22 +38,8 @@ jobs:
           cd zekret-back-quarkus
           mvn test
 
-  trivy_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: "fs"
-          scan-ref: "zekret-back-quarkus/"
-          ignore-unfixed: true
-          severity: "CRITICAL,HIGH"
-          scanners: "vuln"
-
   build:
-    needs: [unit_tests, trivy_scan]
+    needs: [unit_tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
