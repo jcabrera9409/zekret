@@ -43,6 +43,7 @@ public class User extends PanacheEntityBase {
 	@PrePersist
 	public void prePersist() {
 		this.createdAt = LocalDateTime.now();
+		this.updatedAt = LocalDateTime.now();
 	}
 
 	@PreUpdate

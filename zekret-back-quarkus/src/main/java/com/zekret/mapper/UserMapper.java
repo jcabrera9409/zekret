@@ -1,5 +1,7 @@
 package com.zekret.mapper;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 import com.zekret.dto.UserRequestDTO;
 import com.zekret.dto.UserResponseDTO;
 import com.zekret.model.User;
@@ -9,7 +11,7 @@ public class UserMapper {
         User user = new User();
         user.setEmail(dto.email());
         user.setUsername(dto.username());
-        user.setPassword(dto.password());
+        user.setPassword(BCrypt.hashpw(dto.password(), BCrypt.gensalt()));
         return user;
     }
 
