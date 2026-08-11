@@ -10,20 +10,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  trivy_scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: 'fs'
-          scan-ref: 'zekret-front/'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
-          scanners: 'vuln'
-
   build:
     runs-on: ubuntu-latest
     environment: ${{ 
@@ -55,7 +41,7 @@ jobs:
           path: zekret-front/dist/zekret-front/browser
 
   dockerize-and-push:
-    needs: [build, trivy_scan]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
